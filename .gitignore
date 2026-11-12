@@ -1,0 +1,5 @@
+.claude/
+*.lnk
+*-backup-*.json
+Thumbs.db
+desktop.ini

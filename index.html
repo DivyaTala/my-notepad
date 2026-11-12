@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Notepad</title>
+<link rel="icon" type="image/png" id="fav" href="icon.png">
+<script>(function(){try{var d=document.documentElement;d.dataset.theme=localStorage.getItem('np-theme')||'lavender';d.dataset.mode=localStorage.getItem('np-mode')||'light';}catch(e){}})()</script>
+<style>
+  /* ---------- Themes: each block is one colour set. Edit the values to restyle the app. ---------- */
+  :root, html[data-theme="lavender"] {
+    --bg: #f8f7fc; --panel: #f1eff8; --paper: #ffffff; --line: #e4e0f0; --text: #2b2838; --muted: #8a85a0;
+    --accent: #7d6fc2; --accent2: #7d6fc2; --accent-soft: #e6e1f7; --accent-hover: #ebe7f8; --accent-ink: #4a3f8f; --on-accent: #ffffff;
+    --faint: #c9c4da; --edge: #cfc6ef; --code-bg: #f3f1fa; --danger: #c0506a;
+    --flower: #b9aee6; --flower-center: #f1dc9a; --stem: #bccab7; --leaf: #cfdacb; --shadow: 90 75 160;
+    --radius: 10px; --ui-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  html[data-theme="teal"] { /* teal with golden brown */
+    --bg: #f8f6f0; --panel: #f0ece2; --paper: #fffdf9; --line: #e5ddcf; --text: #2d2a25; --muted: #8b8474;
+    --accent: #3f8f8a; --accent2: #a87a3c; --accent-soft: #d9eae6; --accent-hover: #ebeee6; --accent-ink: #23625e; --on-accent: #ffffff;
+    --faint: #cfc6b3; --edge: #d8c7a3; --code-bg: #f3efe5; --danger: #b8554f;
+    --flower: #d1a660; --flower-center: #4f9c96; --stem: #a9bcae; --leaf: #c3d4c8; --shadow: 110 90 50;
+  }
+  html[data-theme="blue"] { /* soft blues */
+    --bg: #f5f7fa; --panel: #edf1f6; --paper: #ffffff; --line: #dde4ec; --text: #27303a; --muted: #7f8b99;
+    --accent: #5f8fc4; --accent2: #5f8fc4; --accent-soft: #dfe9f5; --accent-hover: #e8eef6; --accent-ink: #2f5c8f; --on-accent: #ffffff;
+    --faint: #c3ccd8; --edge: #c5d3e3; --code-bg: #f0f3f8; --danger: #c0506a;
+    --flower: #a9c3e3; --flower-center: #f1dc9a; --stem: #b7c9c0; --leaf: #cbdad2; --shadow: 60 90 130;
+  }
+  html[data-mode="dark"] { /* dark lavender */
+    color-scheme: dark;
+    --bg: #1d1b26; --panel: #191722; --paper: #24212f; --line: #353145; --text: #e4e1ee; --muted: #9993ad;
+    --accent: #9d90dc; --accent2: #9d90dc; --accent-soft: #36305a; --accent-hover: #2b2740; --accent-ink: #d2caf6; --on-accent: #1a1824;
+    --faint: #5a5570; --edge: #4b4569; --code-bg: #2c2939; --danger: #e08098;
+    --flower: #a99be0; --flower-center: #e6cf8a; --stem: #66775f; --leaf: #56664f; --shadow: 0 0 0;
+  }
+  html[data-mode="dark"][data-theme="teal"] {
+    --bg: #1b1f1d; --panel: #171a19; --paper: #222826; --line: #343c39; --text: #e3e6e1; --muted: #949f99;
+    --accent: #62b0a9; --accent2: #d0a45f; --accent-soft: #25413e; --accent-hover: #27302e; --accent-ink: #addcd6; --on-accent: #14201f;
+    --faint: #56605b; --edge: #5c533f; --code-bg: #29302e; --danger: #e08a80;
+    --flower: #cfa55f; --flower-center: #62b0a9; --stem: #5f7468; --leaf: #4f6257; --shadow: 0 0 0;
+  }
+  html[data-mode="dark"][data-theme="blue"] {
+    --bg: #1b1f25; --panel: #171a20; --paper: #22272f; --line: #333b46; --text: #e1e6ed; --muted: #909baa;
+    --accent: #7fa8d8; --accent2: #7fa8d8; --accent-soft: #2a3b52; --accent-hover: #262d38; --accent-ink: #bfd8f3; --on-accent: #141c26;
+    --faint: #55606e; --edge: #44546a; --code-bg: #282e37; --danger: #e08098;
+    --flower: #8fb0da; --flower-center: #e6cf8a; --stem: #5f7468; --leaf: #4f6257; --shadow: 0 0 0;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--ui-font); color: var(--text); background: var(--bg); font-size: 14px; }
+  button, select, input { font-family: inherit; font-size: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  #app { display: grid; grid-template-columns: 210px 270px 1fr; height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 18px 10px 12px; min-height: 0; }
+  .brand { font-weight: 650; font-size: 17px; padding: 0 10px 16px; letter-spacing: .2px; }
+  .brand span { color: var(--accent2); }
+  #sections { flex: 1; overflow-y: auto; }
+  .section { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; user-select: none; }
+  .section:hover { background: var(--accent-hover); }
+  .section.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .section .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .section .count { color: var(--muted); font-size: 12px; font-weight: 400; }
+  .section .more { visibility: hidden; border: 0; background: none; padding: 0 4px; color: var(--muted); border-radius: 4px; }
+  .section:hover .more { visibility: visible; }
+  .section .more:hover { background: var(--paper); color: var(--text); }
+  .side-btn { border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 8px; color: var(--muted); width: 100%; }
+  .side-btn:hover { background: var(--accent-hover); color: var(--text); }
+  .side-foot { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ---------- Note list ---------- */
+  #listPane { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+  .list-head { padding: 16px 14px 10px; display: flex; gap: 8px; align-items: center; }
+  .list-head h2 { margin: 0; font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 6px 12px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.small { padding: 4px 9px; font-size: 13px; }
+  #search { margin: 0 14px 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); outline: none; }
+  #search:focus, .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  #notes { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
+  .note { padding: 10px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px; }
+  .note:hover { background: var(--accent-hover); }
+  .note.active { background: var(--paper); box-shadow: 0 0 0 1px var(--line), 0 2px 8px rgb(var(--shadow) / .07); }
+  .note .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note .s { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+  .note .d { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .empty { color: var(--muted); text-align: center; padding: 30px 16px; }
+
+  /* ---------- Editor ---------- */
+  #editorPane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--paper); }
+  #toolbar { border-bottom: 1px solid var(--line); padding: 8px 14px; background: var(--paper); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  #moreRow { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .tb { border: 0; background: none; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+  .tb:hover { background: var(--accent-hover); }
+  .tb.on { background: var(--accent-soft); color: var(--accent-ink); }
+  .tb svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+  .tsel { height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 0 6px; outline: none; }
+  .tsel:hover { border-color: var(--accent); }
+  .sep { width: 1px; height: 20px; background: var(--line); margin: 0 5px; }
+  .lbl { color: var(--muted); font-size: 12px; margin: 0 2px 0 4px; }
+  .color { position: relative; }
+  .color input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .color .bar { position: absolute; left: 7px; right: 7px; bottom: 4px; height: 3px; border-radius: 2px; }
+
+  #titleRow { display: flex; align-items: center; gap: 10px; padding: 22px 46px 4px; }
+  #title { flex: 1; border: 0; outline: 0; font-size: 26px; font-weight: 650; background: none; min-width: 0; }
+  #title::placeholder { color: var(--faint); }
+  #editorWrap { flex: 1; overflow-y: auto; position: relative; }
+  #editor { min-height: 100%; padding: 10px 46px 80px; outline: none; font-family: Calibri, Carlito, "Segoe UI", sans-serif; font-size: 12pt; line-height: 1.5; word-wrap: break-word; }
+  #editor p { margin: 0 0 6px; }
+  #editor img { max-width: 100%; height: auto; border-radius: 6px; cursor: pointer; }
+  #editor img.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #editor hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+  #editor a { color: var(--accent); }
+  #editor h1, #editor h2, #editor h3, #editor h4 { margin: 18px 0 8px; line-height: 1.25; font-weight: 650; }
+  #editor h1 { font-size: 1.7em; } #editor h2 { font-size: 1.4em; } #editor h3 { font-size: 1.18em; } #editor h4 { font-size: 1.05em; }
+  #editor > :first-child { margin-top: 0; }
+  #editor blockquote { margin: 10px 0; padding: 4px 14px; border-left: 3px solid var(--edge); color: var(--muted); }
+  #editor code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+  #editor pre { background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-family: Consolas, "Courier New", monospace; font-size: .9em; line-height: 1.45; margin: 10px 0; }
+  #editor table { border-collapse: collapse; margin: 10px 0; }
+  #editor th, #editor td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  #editor th { background: var(--panel); font-weight: 600; }
+  #editor ul, #editor ol { margin: 4px 0 8px; padding-left: 26px; }
+  #imgBar { position: absolute; display: none; background: #2b2838; border-radius: 8px; padding: 4px; gap: 2px; z-index: 5; }
+  #imgBar button { border: 0; background: none; color: #fff; padding: 4px 8px; border-radius: 5px; font-size: 12px; }
+  #imgBar button:hover { background: rgba(255,255,255,.18); }
+  #status { border-top: 1px solid var(--line); padding: 6px 16px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+
+  /* ---------- Lock screen ---------- */
+  #lockPane { grid-column: 2 / 4; display: none; align-items: center; justify-content: center; background: var(--bg); }
+  .lock-card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 34px 36px; width: 360px; text-align: center; box-shadow: 0 10px 40px rgb(var(--shadow) / .08); }
+  .lock-card .ico { width: 54px; height: 54px; border-radius: 50%; background: var(--accent-soft); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; }
+  .lock-card h2 { margin: 14px 0 6px; font-size: 19px; }
+  .lock-card p { color: var(--muted); margin: 0 0 16px; line-height: 1.45; }
+  .field { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; outline: none; margin-bottom: 10px; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 6px; }
+  body.locked #listPane, body.locked #editorPane { display: none; }
+  body.locked #lockPane { display: flex; }
+  body.nonote #toolbar, body.nonote #titleRow, body.nonote #editorWrap, body.nonote #status { display: none; }
+  #noNote { display: none; flex: 1; align-items: center; justify-content: center; color: var(--muted); }
+  body.nonote #noNote { display: flex; }
+
+  #menu { position: fixed; display: none; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 5px; box-shadow: 0 8px 30px rgb(var(--shadow) / .14); z-index: 20; min-width: 150px; }
+  #menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; }
+  #menu button:hover { background: var(--accent-hover); }
+  #menu button.danger { color: var(--danger); }
+  /* ---------- Home / to-do ---------- */
+  #homePane { grid-column: 2 / 4; display: none; overflow-y: auto; background: var(--bg); }
+  body.home #homePane { display: block; }
+  body.home #listPane, body.home #editorPane, body.home #lockPane { display: none; }
+  .home-inner { max-width: 640px; margin: 0 auto; padding: 48px 28px 60px; }
+  .home-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; }
+  .home-head h1 { margin: 0; font-size: 28px; font-weight: 650; }
+  .home-head .date { color: var(--muted); margin-top: 6px; }
+  .home-head svg { width: 120px; height: 100px; flex: none; margin-bottom: -8px; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; box-shadow: 0 10px 40px rgb(var(--shadow) / .06); }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .card-head h2 { margin: 0; font-size: 16px; flex: 1; }
+  .card-head .left { color: var(--muted); font-size: 12.5px; }
+  .link { border: 0; background: none; color: var(--accent); padding: 2px 4px; border-radius: 4px; font-size: 12.5px; }
+  .link:hover { background: var(--accent-hover); }
+  .todo { display: flex; align-items: center; gap: 10px; padding: 3px 4px; border-radius: 8px; }
+  .todo:hover { background: var(--bg); }
+  .todo input[type=checkbox] { appearance: none; width: 18px; height: 18px; border: 1.5px solid var(--edge); border-radius: 50%; margin: 0; cursor: pointer; flex: none; display: grid; place-content: center; }
+  .todo input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  .todo input[type=checkbox]:checked::after { content: ''; width: 9px; height: 5px; border-left: 2px solid var(--on-accent); border-bottom: 2px solid var(--on-accent); transform: rotate(-45deg) translate(1px, -1px); }
+  .todo input[type=text] { flex: 1; border: 0; outline: 0; background: none; padding: 6px 0; min-width: 0; font-size: 14.5px; }
+  .todo.done input[type=text] { color: var(--muted); text-decoration: line-through; }
+  .todo .x { visibility: hidden; border: 0; background: none; color: var(--muted); border-radius: 4px; padding: 0 6px; font-size: 16px; }
+  .todo:hover .x { visibility: visible; } .todo .x:hover { color: var(--danger); }
+  #todoAdd { width: 100%; margin-top: 10px; padding: 9px 12px; border: 1px dashed var(--edge); border-radius: 8px; outline: none; background: none; }
+  #todoAdd:focus { border-style: solid; border-color: var(--accent); background: var(--paper); }
+  .brand { display: flex; align-items: center; gap: 7px; }
+  .brand svg { width: 20px; height: 20px; }
+  #noNote { flex-direction: column; gap: 10px; } #noNote svg { width: 34px; height: 34px; opacity: .8; }
+  dialog { background: var(--paper); border: 0; border-radius: 16px; padding: 28px 30px; width: 360px; color: var(--text); box-shadow: 0 20px 60px rgb(var(--shadow) / .25); }
+  dialog::backdrop { background: rgb(var(--shadow) / .25); }
+  dialog h2 { margin: 0 0 6px; font-size: 18px; } dialog p { color: var(--muted); margin: 0 0 14px; line-height: 1.45; }
+  .dlg-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  /* ---------- Calendar & reminders ---------- */
+  #calPane { grid-column: 2 / 4; display: none; overflow-y: auto; background: var(--bg); }
+  body.cal #calPane { display: block; }
+  body.cal #listPane, body.cal #editorPane, body.cal #lockPane { display: none; }
+  .cal-inner { max-width: 1000px; margin: 0 auto; padding: 36px 28px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .cal-inner { grid-template-columns: 1fr; } }
+  .cal-head { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .cal-head h2, .cal-day h2 { margin: 0; font-size: 18px; }
+  .cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cal-dow div { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 6px; }
+  .day { min-height: 68px; border-radius: 10px; padding: 5px 6px; cursor: pointer; border: 1px solid transparent; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .day:hover { background: var(--accent-hover); }
+  .day.out { color: var(--faint); }
+  .day .num { width: 24px; height: 24px; display: grid; place-content: center; border-radius: 50%; font-size: 13px; }
+  .day.today .num { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .day.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .day .pill { font-size: 10.5px; background: var(--accent-soft); color: var(--accent-ink); border-radius: 4px; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day.sel .pill { background: var(--paper); }
+  .day .extra { font-size: 10.5px; color: var(--muted); padding-left: 4px; }
+  .cal-note { margin-top: 14px; color: var(--muted); font-size: 12.5px; }
+  .ev { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ev.past { opacity: .55; }
+  .ev input[type=text] { flex: 1 1 60%; border: 0; outline: 0; font-weight: 600; background: none; font-size: 14.5px; min-width: 0; }
+  .ev input[type=time] { border: 1px solid var(--line); border-radius: 6px; height: 28px; padding: 0 4px; background: var(--paper); outline: none; }
+  .ev select { height: 28px; flex: 1; min-width: 0; }
+  .ev .x { border: 0; background: none; color: var(--muted); font-size: 16px; border-radius: 4px; padding: 0 6px; }
+  .ev .x:hover { color: var(--danger); }
+  #evQuick { width: 100%; margin: 14px 0 8px; padding: 9px 12px; border: 1px dashed var(--edge); border-radius: 8px; outline: none; background: none; }
+  #evQuick:focus { border-style: solid; border-color: var(--accent); }
+  .ev-add { display: flex; align-items: center; gap: 6px; }
+  .ev-add select { flex: 1; }
+  .up { display: flex; gap: 12px; padding: 7px 4px; border-radius: 8px; cursor: pointer; }
+  .up:hover { background: var(--bg); }
+  .up .w { color: var(--accent2); width: 160px; flex: none; font-size: 13px; }
+  #toasts { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column-reverse; gap: 10px; z-index: 50; }
+  .toast { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--accent2); border-radius: 12px; padding: 14px 16px; width: 300px; box-shadow: 0 12px 40px rgb(var(--shadow) / .22); }
+  .toast .tt { font-weight: 650; font-size: 15px; overflow-wrap: anywhere; }
+  .toast .ts { color: var(--muted); margin: 3px 0 10px; }
+  /* ---------- Theme picker ---------- */
+  .theme-row { display: flex; align-items: center; gap: 9px; padding: 4px 10px 8px; }
+  .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--panel); outline: 1px solid var(--faint); padding: 0; }
+  .sw.on { outline: 2px solid var(--accent); }
+  /* ---------- Full screen (side panels hidden) ---------- */
+  body.focus #app { grid-template-columns: 1fr; }
+  body.focus #sidebar, body.focus #listPane { display: none; }
+  body.focus #titleRow, body.focus #editor { max-width: 940px; margin-left: auto; margin-right: auto; width: 100%; }
+  ::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+</style>
+</head>
+<body class="nonote">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="flower"><g style="fill:var(--flower)"><ellipse cy="-8" rx="4.6" ry="7.5"/><ellipse cy="-8" rx="4.6" ry="7.5" transform="rotate(72)"/><ellipse cy="-8" rx="4.6" ry="7.5" transform="rotate(144)"/><ellipse cy="-8" rx="4.6" ry="7.5" transform="rotate(216)"/><ellipse cy="-8" rx="4.6" ry="7.5" transform="rotate(288)"/></g><circle r="3.2" style="fill:var(--flower-center)"/></g>
+</defs></svg>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand"><svg viewBox="-16 -16 32 32"><use href="#flower"/></svg><div>My <span>Notepad</span></div></div>
+    <div class="section" id="homeBtn"><span class="name">Home</span></div>
+    <div class="section" id="calBtn"><span class="name">Calendar</span></div>
+    <div id="sections"></div>
+    <button class="side-btn" id="addSection">+ New section</button>
+    <div class="side-foot">
+      <div class="theme-row">
+        <button class="sw" data-theme="lavender" title="Lavender" style="background:#9d90dc"></button>
+        <button class="sw" data-theme="teal" title="Teal and golden brown" style="background:linear-gradient(135deg,#4a9a94 50%,#c0914a 50%)"></button>
+        <button class="sw" data-theme="blue" title="Soft blue" style="background:#7fa8d8"></button>
+        <span style="flex:1"></span>
+        <button class="side-btn" id="modeBtn" style="width:auto;padding:4px 8px" title="Switch between light and dark"></button>
+      </div>
+      <button class="side-btn" id="exportBtn" title="Download all notes as one backup file">⇩ Export backup</button>
+      <button class="side-btn" id="importBtn" title="Restore notes from a backup file">⇧ Import backup</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </aside>
+
+  <section id="listPane">
+    <div class="list-head">
+      <h2 id="sectionTitle"></h2>
+      <button class="btn small" id="lockBtn" hidden title="Lock the journal">🔒</button>
+      <button class="btn small" id="openFile" title="Open a file from your computer as a note (.md, .html or .txt). It is copied into the app; the original file is not changed.">Open file</button>
+      <input type="file" id="noteFile" accept=".md,.markdown,.txt,.html,.htm,text/markdown,text/plain,text/html" multiple hidden>
+      <button class="btn primary small" id="newNote">+ Note</button>
+    </div>
+    <input id="search" placeholder="Search this section…">
+    <div id="notes"></div>
+  </section>
+
+  <main id="editorPane">
+    <div id="toolbar">
+      <div class="row">
+        <select class="tsel" id="font" title="Font" style="width:150px"></select>
+        <select class="tsel" id="size" title="Font size"></select>
+        <span class="sep"></span>
+        <button class="tb" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="tb" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="tb" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+        <span class="tb color" title="Text colour">A<span class="bar" id="fcBar" style="background:#7d6fc2"></span><input type="color" id="foreColor" value="#7d6fc2"></span>
+        <span class="tb color" title="Highlight">🖍<span class="bar" id="hlBar" style="background:#fff3a3"></span><input type="color" id="hiliteColor" value="#fff3a3"></span>
+        <span class="sep"></span>
+        <button class="tb" data-cmd="insertUnorderedList" title="Bullet list">• ≡</button>
+        <button class="tb" data-cmd="insertOrderedList" title="Numbered list">1. ≡</button>
+        <span class="sep"></span>
+        <button class="tb" id="imgBtn" title="Insert picture (or just paste a screenshot with Ctrl+V)">🖼 Picture</button>
+        <input type="file" id="imgFile" accept="image/*" multiple hidden>
+        <span class="sep"></span>
+        <button class="tb" id="moreBtn" title="Alignment, spacing and more">More ▾</button>
+        <span style="flex:1"></span>
+        <button class="tb" id="focusBtn" title="Hide the side panels and go full screen (Esc to come back)">⛶ Full screen</button>
+        <button class="tb" id="delNote" title="Delete this note" style="color:var(--danger)">Delete</button>
+      </div>
+      <div class="row" id="moreRow" hidden>
+        <span class="lbl">Align</span>
+        <button class="tb" data-cmd="justifyLeft" title="Align left"><svg viewBox="0 0 16 16"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg></button>
+        <button class="tb" data-cmd="justifyCenter" title="Centre"><svg viewBox="0 0 16 16"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg></button>
+        <button class="tb" data-cmd="justifyRight" title="Align right"><svg viewBox="0 0 16 16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg></button>
+        <button class="tb" data-cmd="justifyFull" title="Justify"><svg viewBox="0 0 16 16"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h12"/></svg></button>
+        <span class="sep"></span>
+        <span class="lbl">Line spacing</span>
+        <select class="tsel" id="lineSp" title="Line spacing">
+          <option value="">–</option><option>1.0</option><option>1.15</option><option>1.5</option><option>2.0</option><option>2.5</option><option>3.0</option>
+        </select>
+        <span class="lbl">Paragraph gap</span>
+        <select class="tsel" id="paraSp" title="Space after paragraph">
+          <option value="">–</option><option value="0">None</option><option value="6">Small</option><option value="12">Medium</option><option value="24">Large</option>
+        </select>
+        <span class="sep"></span>
+        <button class="tb" data-cmd="outdent" title="Decrease indent">⇤</button>
+        <button class="tb" data-cmd="indent" title="Increase indent">⇥</button>
+        <span class="sep"></span>
+        <button class="tb" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+        <button class="tb" data-cmd="insertHorizontalRule" title="Divider line">―</button>
+        <button class="tb" data-cmd="removeFormat" title="Clear formatting">Clear</button>
+        <span class="sep"></span>
+        <button class="tb" data-cmd="undo" title="Undo (Ctrl+Z)">↶</button>
+        <button class="tb" data-cmd="redo" title="Redo (Ctrl+Y)">↷</button>
+      </div>
+    </div>
+    <div id="titleRow"><input id="title" placeholder="Title" maxlength="200"></div>
+    <div id="editorWrap">
+      <div id="editor" contenteditable="true" spellcheck="true"></div>
+      <div id="imgBar">
+        <button data-w="25%">25%</button><button data-w="50%">50%</button><button data-w="75%">75%</button><button data-w="100%">Full</button><button data-w="">Original</button><button data-w="x">Remove</button>
+      </div>
+    </div>
+    <div id="status"><span id="saved"></span><span id="words"></span></div>
+    <div id="noNote"><svg viewBox="-16 -16 32 32"><use href="#flower"/></svg>Pick a note, or create a new one.</div>
+  </main>
+
+  <div id="homePane">
+    <div class="home-inner">
+      <div class="home-head">
+        <div><h1 id="greet"></h1><div class="date" id="today"></div></div>
+        <svg viewBox="0 0 140 116" aria-hidden="true">
+          <g fill="none" style="stroke:var(--stem)" stroke-width="2" stroke-linecap="round"><path d="M18 110C50 94 72 68 98 30"/><path d="M54 86c18-3 32-8 48-10"/><path d="M72 64c-8-11-14-21-20-31"/></g>
+          <g style="fill:var(--leaf)"><ellipse cx="36" cy="94" rx="9" ry="4" transform="rotate(-50 36 94)"/><ellipse cx="78" cy="88" rx="8" ry="3.5" transform="rotate(12 78 88)"/><ellipse cx="88" cy="52" rx="8" ry="3.5" transform="rotate(-20 88 52)"/><ellipse cx="58" cy="54" rx="7" ry="3" transform="rotate(60 58 54)"/></g>
+          <use href="#flower" transform="translate(99 27) scale(1.35)"/><use href="#flower" transform="translate(106 76) scale(.85) rotate(20)" opacity=".8"/><use href="#flower" transform="translate(50 30) rotate(-15)" opacity=".9"/>
+        </svg>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>To-do</h2><span class="left" id="todoLeft"></span><button class="link" id="todoClear">Clear done</button></div>
+        <div id="todos"></div>
+        <input id="todoAdd" placeholder="+ Add a task and press Enter" maxlength="300">
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><h2>Coming up</h2><button class="link" id="upOpen">Open calendar</button></div>
+        <div id="upcoming"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="calPane">
+    <div class="cal-inner">
+      <div class="card">
+        <div class="cal-head"><h2 id="calTitle"></h2><span style="flex:1"></span><button class="btn small" id="calToday">Today</button><button class="btn small" id="calPrev" title="Previous month">‹</button><button class="btn small" id="calNext" title="Next month">›</button></div>
+        <div class="cal-dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-note"><span id="notifState"></span> <button class="link" id="notifBtn"></button></div>
+      </div>
+      <div class="card cal-day">
+        <h2 id="dayTitle"></h2>
+        <div id="dayEvents"></div>
+        <input id="evQuick" placeholder="e.g. Meeting at 2pm" maxlength="200">
+        <div class="ev-add"><span class="lbl">Remind me</span><select class="tsel" id="evLead"></select><button class="btn primary small" id="evAdd">Add</button></div>
+        <div class="err" id="evErr" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lockPane">
+    <form class="lock-card" id="lockForm" autocomplete="off">
+      <div class="ico">🔒</div>
+      <h2 id="lockTitle"></h2>
+      <p id="lockText"></p>
+      <input class="field" type="password" id="pw1" placeholder="Password">
+      <input class="field" type="password" id="pw2" placeholder="Repeat password">
+      <input class="field" type="text" id="bq" placeholder="Backup question (optional)" maxlength="150">
+      <input class="field" type="text" id="ba" placeholder="Answer to backup question" maxlength="150">
+      <div class="err" id="lockErr"></div>
+      <button class="btn primary" id="lockGo" style="width:100%;padding:9px"></button>
+    <button type="button" class="link" id="forgotBtn" style="margin-top:12px" hidden>Forgot password?</button>
+    </form>
+  </div>
+</div>
+<div id="menu"></div>
+<div id="toasts"></div>
+<dialog id="bqDlg">
+  <form id="bqForm" autocomplete="off">
+    <h2>Backup question</h2>
+    <p>If you forget your password, answering this lets you set a new one. Anyone who knows the answer can open your journal, so pick something only you know.</p>
+    <input class="field" type="password" id="bqPw" placeholder="Current password">
+    <input class="field" type="text" id="bqQ" placeholder="Question, e.g. Name of my first teacher" maxlength="150">
+    <input class="field" type="text" id="bqA" placeholder="Answer" maxlength="150">
+    <div class="err" id="bqErr"></div>
+    <div class="dlg-btns"><button type="button" class="btn" id="bqCancel">Cancel</button><button class="btn primary" id="bqGo">Save</button></div>
+  </form>
+</dialog>
+<dialog id="fgDlg">
+  <form id="fgForm" autocomplete="off">
+    <h2>Forgot password</h2>
+    <p>Answer your backup question, then choose a new password.</p>
+    <div id="fgQ" style="font-weight:600;margin-bottom:8px"></div>
+    <input class="field" type="text" id="fgA" placeholder="Your answer" maxlength="150">
+    <input class="field" type="password" id="fgNew" placeholder="New password">
+    <input class="field" type="password" id="fgNew2" placeholder="Repeat new password">
+    <div class="err" id="fgErr"></div>
+    <div class="dlg-btns"><button type="button" class="btn" id="fgCancel">Cancel</button><button class="btn primary" id="fgGo">Reset password</button></div>
+  </form>
+</dialog>
+<dialog id="pwDlg">
+  <form id="pwForm" autocomplete="off">
+    <h2>Change password</h2>
+    <p>If you forget the new password, only your backup question can get you back in.</p>
+    <input class="field" type="password" id="cpOld" placeholder="Current password">
+    <input class="field" type="password" id="cpNew" placeholder="New password">
+    <input class="field" type="password" id="cpNew2" placeholder="Repeat new password">
+    <div class="err" id="cpErr"></div>
+    <div class="dlg-btns"><button type="button" class="btn" id="cpCancel">Cancel</button><button class="btn primary" id="cpGo">Change password</button></div>
+  </form>
+</dialog>
+
+<script>
+/* ---------- Things you may want to customise ---------- */
+const DEFAULT_SECTIONS = [
+  { name: 'Study' }, { name: 'Work' }, { name: 'Journal', locked: true },
+  { name: 'Finance' }, { name: 'Extra' }, { name: 'Misc' },
+];
+const FONTS = [ // [name shown, CSS font stack]
+  ['Calibri', 'Calibri, Carlito, sans-serif'],
+  ['Arial', 'Arial, Helvetica, sans-serif'],
+  ['Times New Roman', '"Times New Roman", Times, serif'],
+  ['Cambria', 'Cambria, Georgia, serif'],
+  ['Georgia', 'Georgia, serif'],
+  ['Garamond', 'Garamond, "EB Garamond", serif'],
+  ['Verdana', 'Verdana, Geneva, sans-serif'],
+  ['Tahoma', 'Tahoma, Geneva, sans-serif'],
+  ['Century Gothic', '"Century Gothic", "Segoe UI", sans-serif'],
+  ['Courier New', '"Courier New", Courier, monospace'],
+];
+const SIZES = [9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48];
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const editor = $('editor');
+
+/* ---------- Storage (IndexedDB, lives in this browser on this computer) ---------- */
+const dbp = new Promise((res, rej) => {
+  const r = indexedDB.open('mynotepad', 1);
+  r.onupgradeneeded = () => { r.result.createObjectStore('notes', { keyPath: 'id' }); r.result.createObjectStore('meta'); };
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+async function idb(store, mode, fn) {
+  const db = await dbp;
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode); const rq = fn(t.objectStore(store));
+    t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+}
+const metaGet = k => idb('meta', 'readonly', s => s.get(k));
+const metaSet = (k, v) => idb('meta', 'readwrite', s => s.put(v, k));
+
+/* ---------- Encryption for locked sections (AES-256, key derived from the password) ---------- */
+const enc = new TextEncoder(), dec = new TextDecoder();
+function toB64(buf) { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function fromB64(s) { const bin = atob(s); const b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
+async function deriveKey(password, salt, extractable = false) {
+  const base = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, extractable, ['encrypt', 'decrypt']);
+}
+async function encrypt(key, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  return { iv: toB64(iv), ct: toB64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(text))) };
+}
+async function decrypt(key, box) { return dec.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(box.iv) }, key, fromB64(box.ct))); }
+
+/* ---------- State ---------- */
+let sections = [], notes = new Map(), lockMeta = null, lockKey = null;
+let todos = [], lastNotes = {}, events = [], view = 'home';
+let curSection = null, curNote = null, dirty = false, saveTimer = null, savedRange = null, selImg = null;
+
+const isLocked = sec => !!sec.locked && !lockKey;
+const sectionNotes = id => [...notes.values()].filter(n => n.sectionId === id);
+
+async function persist(n) {
+  const sec = sections.find(s => s.id === n.sectionId);
+  const rec = { id: n.id, sectionId: n.sectionId, created: n.created, updated: n.updated };
+  if (sec && sec.locked) {
+    if (!lockKey) return; // never write a locked note without the key
+    rec.enc = n.enc = await encrypt(lockKey, JSON.stringify({ title: n.title, html: n.html, text: n.text }));
+  } else Object.assign(rec, { title: n.title, html: n.html, text: n.text });
+  await idb('notes', 'readwrite', s => s.put(rec));
+}
+function markDirty() {
+  if (!curNote) return;
+  dirty = true; $('saved').textContent = 'Saving…';
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500);
+}
+async function flush() {
+  clearTimeout(saveTimer);
+  if (!dirty || !curNote) return;
+  dirty = false;
+  const n = curNote;
+  n.title = $('title').value; n.html = editor.innerHTML;
+  n.text = editor.innerText.replace(/\s+/g, ' ').trim().slice(0, 140);
+  n.updated = Date.now();
+  try { await persist(n); $('saved').textContent = 'Saved'; }
+  catch (e) { console.error(e); $('saved').textContent = 'Could not save — storage may be full'; }
+  renderNotes(); renderSections();
+}
+
+/* ---------- Rendering ---------- */
+function renderSections() {
+  const box = $('sections'); box.textContent = '';
+  $('homeBtn').classList.toggle('active', view === 'home');
+  $('calBtn').classList.toggle('active', view === 'calendar');
+  for (const s of sections) {
+    const el = document.createElement('div');
+    el.className = 'section' + (s === curSection ? ' active' : '');
+    const name = document.createElement('span'); name.className = 'name'; name.textContent = s.name;
+    const count = document.createElement('span'); count.className = 'count';
+    count.textContent = s.locked ? (lockKey ? '🔓' : '🔒') : (sectionNotes(s.id).length || '');
+    const more = document.createElement('button'); more.className = 'more'; more.textContent = '⋯'; more.title = 'Rename or delete';
+    more.onclick = e => { e.stopPropagation(); sectionMenu(s, more); };
+    el.append(name, count, more);
+    el.onclick = () => openSection(s);
+    box.append(el);
+  }
+}
+function fmtDate(t) {
+  const d = new Date(t), now = new Date();
+  return d.toDateString() === now.toDateString()
+    ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+}
+function renderNotes() {
+  const box = $('notes'); box.textContent = '';
+  if (!curSection || isLocked(curSection)) return;
+  const q = $('search').value.trim().toLowerCase();
+  const list = sectionNotes(curSection.id)
+    .filter(n => !q || (n.title || '').toLowerCase().includes(q) || htmlText(n.html).toLowerCase().includes(q))
+    .sort((a, b) => b.updated - a.updated);
+  if (!list.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = q ? 'No matches.' : 'No notes here yet.'; box.append(e); return; }
+  for (const n of list) {
+    const el = document.createElement('div'); el.className = 'note' + (n === curNote ? ' active' : '');
+    const t = document.createElement('div'); t.className = 't'; t.textContent = n.title || 'Untitled';
+    const s = document.createElement('div'); s.className = 's'; s.textContent = n.text || (/<img/i.test(n.html || '') ? 'Picture' : 'Empty note');
+    const d = document.createElement('div'); d.className = 'd'; d.textContent = fmtDate(n.updated);
+    el.append(t, s, d); el.onclick = () => openNote(n); box.append(el);
+  }
+}
+function htmlText(html) { return html ? new DOMParser().parseFromString(html, 'text/html').body.textContent : ''; }
+function updateWords() {
+  const w = editor.innerText.trim().split(/\s+/).filter(Boolean).length;
+  $('words').textContent = w + (w === 1 ? ' word' : ' words');
+}
+
+async function openSection(s) {
+  await flush();
+  curSection = s; curNote = null; hideImgBar(); view = 'section';
+  $('search').value = '';
+  $('sectionTitle').textContent = s.name;
+  $('lockBtn').hidden = !(s.locked && lockKey);
+  document.body.classList.remove('home', 'cal');
+  document.body.classList.toggle('locked', isLocked(s));
+  document.body.classList.add('nonote');
+  if (isLocked(s)) showLockScreen();
+  renderSections(); renderNotes();
+  metaSet('lastSection', s.id);
+  if (!isLocked(s)) { const list = sectionNotes(s.id).sort((a, b) => b.updated - a.updated); const n = list.find(x => x.id === lastNotes[s.id]) || list[0]; if (n) openNote(n); }
+}
+
+/* ---------- Home page & to-do list ---------- */
+async function openHome() {
+  await flush();
+  curSection = null; curNote = null; hideImgBar(); view = 'home';
+  document.body.classList.remove('locked', 'cal'); document.body.classList.add('home', 'nonote');
+  const h = new Date().getHours();
+  $('greet').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  $('today').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  renderSections(); renderTodos(); renderUpcoming(); metaSet('lastSection', 'home');
+}
+$('homeBtn').onclick = openHome;
+let todoTimer = null;
+const saveTodos = () => { clearTimeout(todoTimer); updateTodoCount(); return metaSet('todos', todos); };
+function updateTodoCount() {
+  const left = todos.filter(t => !t.done).length;
+  $('todoLeft').textContent = todos.length ? left + ' left' : '';
+  $('todoClear').hidden = !todos.some(t => t.done);
+}
+function renderTodos() {
+  const box = $('todos'); box.textContent = '';
+  for (const t of todos) {
+    const row = document.createElement('div'); row.className = 'todo' + (t.done ? ' done' : '');
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = t.done;
+    cb.onchange = () => { t.done = cb.checked; row.classList.toggle('done', t.done); saveTodos(); };
+    const tx = document.createElement('input'); tx.type = 'text'; tx.value = t.text; tx.maxLength = 300;
+    tx.oninput = () => { t.text = tx.value; clearTimeout(todoTimer); todoTimer = setTimeout(saveTodos, 300); };
+    tx.onkeydown = e => {
+      if (e.key === 'Enter') { e.preventDefault(); $('todoAdd').focus(); }
+      if (e.key === 'Backspace' && !tx.value) { e.preventDefault(); removeTodo(t); $('todoAdd').focus(); }
+    };
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '\u00d7'; x.title = 'Remove'; x.onclick = () => removeTodo(t);
+    row.append(cb, tx, x); box.append(row);
+  }
+  updateTodoCount();
+}
+function removeTodo(t) { todos = todos.filter(x => x !== t); saveTodos(); renderTodos(); }
+$('todoAdd').onkeydown = e => {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim(); if (!v) return;
+  todos.push({ id: uid(), text: v, done: false }); e.target.value = ''; saveTodos(); renderTodos();
+};
+$('todoClear').onclick = () => { todos = todos.filter(t => !t.done); saveTodos(); renderTodos(); };
+async function openNote(n) {
+  await flush();
+  curNote = n; hideImgBar(); savedRange = null;
+  lastNotes[n.sectionId] = n.id; metaSet('lastNotes', lastNotes);
+  document.body.classList.remove('nonote');
+  $('title').value = n.title || '';
+  editor.innerHTML = n.html || '<p><br></p>';
+  $('saved').textContent = 'Saved'; updateWords(); renderNotes();
+  $('editorWrap').scrollTop = 0;
+}
+async function newNote() {
+  if (!curSection || isLocked(curSection)) return;
+  await flush();
+  const n = { id: uid(), sectionId: curSection.id, title: '', html: '<p><br></p>', text: '', created: Date.now(), updated: Date.now() };
+  notes.set(n.id, n); await persist(n);
+  $('search').value = '';
+  await openNote(n); renderSections(); $('title').focus();
+}
+async function deleteNote() {
+  if (!curNote || !confirm('Delete "' + (curNote.title || 'Untitled') + '"? This cannot be undone.')) return;
+  clearTimeout(saveTimer); dirty = false;
+  const id = curNote.id; notes.delete(id); curNote = null;
+  await idb('notes', 'readwrite', s => s.delete(id));
+  openSection(curSection);
+}
+
+/* ---------- Open a file as a note (Markdown is shown formatted, not as code) ---------- */
+const escHtml = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function mdInline(t) {
+  const codes = [];
+  t = t.replace(/`([^`]+)`/g, (_, c) => { codes.push('<code>' + escHtml(c) + '</code>'); return '\u0000' + (codes.length - 1) + '\u0000'; });
+  t = escHtml(t);
+  const web = u => /^(https?:\/\/|mailto:)/i.test(u), pic = u => /^(https?:\/\/|data:image\/)/i.test(u);
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^)]*&quot;)?\)/g, (_, a, u) => pic(u) ? '<img src="' + u + '" alt="' + a + '">' : '<i>[picture: ' + (a || u) + ']</i>');
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;[^)]*&quot;)?\)/g, (_, a, u) => web(u) ? '<a href="' + u + '" target="_blank" rel="noopener">' + a + '</a>' : a);
+  t = t.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_, pre, u) => pre + '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\W)__(.+?)__(?=\W|$)/g, '$1<b>$2</b>');
+  t = t.replace(/\*([^\s*](?:.*?[^\s*])?)\*/g, '<i>$1</i>').replace(/(^|\W)_([^\s_](?:.*?[^\s_])?)_(?=\W|$)/g, '$1<i>$2</i>');
+  t = t.replace(/~~(.+?)~~/g, '<s>$1</s>');
+  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[i]);
+}
+const MD_ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+function mdList(lines, i) {
+  const first = lines[i].match(MD_ITEM), base = first[1].length, ordered = /\d/.test(first[2]);
+  let html = ordered ? '<ol>' : '<ul>';
+  while (i < lines.length) {
+    const m = lines[i].match(MD_ITEM);
+    if (!m) { if (!lines[i].trim() && i + 1 < lines.length && MD_ITEM.test(lines[i + 1])) { i++; continue; } break; }
+    if (m[1].length < base) break;
+    if (m[1].length > base + 1) { const r = mdList(lines, i); html = html.replace(/<\/li>$/, '') + r[0] + '</li>'; i = r[1]; continue; }
+    if (/\d/.test(m[2]) !== ordered) break; // bullets and numbers are separate lists
+    const task = m[3].match(/^\[([ xX])\]\s+(.*)$/);
+    html += '<li>' + (task ? (task[1] === ' ' ? '☐ ' : '☑ ') + mdInline(task[2]) : mdInline(m[3])) + '</li>'; i++;
+    while (i < lines.length && lines[i].trim() && !MD_ITEM.test(lines[i]) && /^\s+/.test(lines[i])) { html = html.replace(/<\/li>$/, ' ' + mdInline(lines[i].trim()) + '</li>'); i++; }
+  }
+  return [html + (ordered ? '</ol>' : '</ul>'), i];
+}
+function mdToHtml(src) {
+  const lines = src.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n'), out = [];
+  let i = 0, m;
+  if (lines[0].trim() === '---') { const e = lines.findIndex((l, k) => k > 0 && l.trim() === '---'); if (e > 0) i = e + 1; } // skip front matter
+  const cells = row => row.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    if (m = l.match(/^\s*(```|~~~)/)) {
+      const buf = []; i++;
+      while (i < lines.length && !lines[i].trim().startsWith(m[1])) buf.push(lines[i++]);
+      i++; out.push('<pre>' + escHtml(buf.join('\n')) + '</pre>'); continue;
+    }
+    if (m = l.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/)) { const n = Math.min(m[1].length, 4); out.push('<h' + n + '>' + mdInline(m[2]) + '</h' + n + '>'); i++; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+    if (/^\s*>/.test(l)) {
+      const buf = []; while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out.push('<blockquote>' + mdToHtml(buf.join('\n')) + '</blockquote>'); continue;
+    }
+    if (l.includes('|') && i + 1 < lines.length && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(lines[i + 1]) && lines[i + 1].includes('-')) {
+      const head = cells(l), rows = []; i += 2;
+      while (i < lines.length && lines[i].trim() && lines[i].includes('|')) rows.push(cells(lines[i++]));
+      out.push('<table><thead><tr>' + head.map(c => '<th>' + mdInline(c) + '</th>').join('') + '</tr></thead><tbody>' +
+        rows.map(r => '<tr>' + r.map(c => '<td>' + mdInline(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>'); continue;
+    }
+    if (MD_ITEM.test(l)) { const r = mdList(lines, i); out.push(r[0]); i = r[1]; continue; }
+    const buf = [l]; i++;
+    while (i < lines.length && lines[i].trim() && !/^\s*(#{1,6}\s|>|```|~~~)/.test(lines[i]) && !MD_ITEM.test(lines[i])) buf.push(lines[i++]);
+    out.push('<p>' + buf.map(x => mdInline(x.trim())).join(' ') + '</p>');
+  }
+  return out.join('');
+}
+// HTML files: keep the content and basic formatting, drop anything that could run code or clash with the app
+function cleanHtml(src) {
+  const doc = new DOMParser().parseFromString(src, 'text/html'), title = (doc.title || '').trim();
+  doc.body.querySelectorAll('script,style,iframe,frame,frameset,object,embed,link,meta,base,noscript,template,input,button,select,textarea,audio,video,canvas,dialog,title').forEach(el => el.remove());
+  doc.body.querySelectorAll('*').forEach(el => {
+    for (const a of [...el.attributes]) {
+      const n = a.name.toLowerCase(), v = a.value.replace(/[\u0000-\u0020]/g, '').toLowerCase();
+      const isUrl = ['href', 'src', 'xlink:href', 'action', 'formaction', 'background', 'poster'].includes(n);
+      if (n.startsWith('on') || ['id', 'class', 'srcdoc', 'srcset', 'contenteditable', 'tabindex'].includes(n) ||
+          (n === 'style' && /position|url\(|expression/.test(v)) || (isUrl && !/^(https?:|mailto:|data:image\/)/.test(v))) el.removeAttribute(a.name);
+    }
+    if (el.tagName === 'A' && el.hasAttribute('href')) { el.target = '_blank'; el.rel = 'noopener'; }
+    if (el.tagName === 'IMG' && !el.hasAttribute('src')) { const i = doc.createElement('i'); i.textContent = '[picture' + (el.alt ? ': ' + el.alt : '') + ']'; el.replaceWith(i); }
+  });
+  return { title, html: doc.body.innerHTML.trim() };
+}
+$('openFile').onclick = () => $('noteFile').click();
+$('noteFile').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length || !curSection || isLocked(curSection)) return;
+  await flush();
+  let last = null;
+  for (const f of files) {
+    const text = await f.text();
+    let html, docTitle = '';
+    if (/\.(md|markdown|mdown)$/i.test(f.name)) html = mdToHtml(text);
+    else if (/\.html?$/i.test(f.name)) { const c = cleanHtml(text); html = c.html; docTitle = c.title; }
+    else html = text.split(/\r?\n/).map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join('');
+    html = html || '<p><br></p>';
+    const n = { id: uid(), sectionId: curSection.id, title: docTitle || f.name.replace(/\.[^.]+$/, ''), html, text: htmlText(html.replace(/</g, ' <')).replace(/\s+/g, ' ').trim().slice(0, 140), created: Date.now(), updated: Date.now() };
+    notes.set(n.id, n); await persist(n); last = n;
+  }
+  $('search').value = ''; await openNote(last); renderSections();
+};
+
+/* ---------- Calendar ---------- */
+const LEADS = [[0, 'At start time'], [5, '5 min before'], [10, '10 min before'], [15, '15 min before'], [30, '30 min before'], [60, '1 hour before']];
+const pad2 = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const eventStart = ev => new Date(ev.date + 'T' + ev.time).getTime();
+const fmtTime = ev => new Date(eventStart(ev)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const dayEvents = key => events.filter(e => e.date === key).sort((a, b) => a.time.localeCompare(b.time));
+const saveEvents = () => { clearTimeout(syncTimer); syncTimer = setTimeout(syncHelper, 400); return metaSet('events', events); };
+
+// Background helper: a small program on this computer that shows Windows notifications even when the app is closed.
+// The app sends it the event list; it answers with the reminders that were dismissed from the Windows notification.
+const HELPER = 'http://localhost:47821';
+let helperOnline = false, syncTimer = null;
+async function syncHelper() {
+  const was = helperOnline;
+  try {
+    const body = JSON.stringify({ events: events.map(e => ({ id: e.id, title: e.title, date: e.date, time: e.time, lead: e.lead, dismissed: !!e.dismissed })) });
+    const r = await fetch(HELPER + '/sync', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body });
+    const j = await r.json(); helperOnline = !!j.ok;
+    let changed = false;
+    for (const id of j.dismissed || []) { const ev = events.find(e => e.id === id); if (ev && !ev.dismissed) { ev.dismissed = true; removeToast(id); changed = true; } }
+    if (changed) metaSet('events', events);
+  } catch { helperOnline = false; }
+  if (was !== helperOnline && view === 'calendar') renderNotifState();
+}
+let calMonth = new Date(), calSel = ymd(new Date()), evTimer = null;
+LEADS.forEach(([m, label]) => $('evLead').add(new Option(label, m))); $('evLead').value = 10;
+
+async function openCalendar(date) {
+  await flush();
+  curSection = null; curNote = null; hideImgBar(); view = 'calendar';
+  if (typeof date === 'string') { calSel = date; calMonth = new Date(date + 'T00:00'); }
+  document.body.classList.remove('locked', 'home'); document.body.classList.add('cal', 'nonote');
+  renderSections(); renderCal(); metaSet('lastSection', 'calendar');
+}
+$('calBtn').onclick = () => openCalendar();
+$('upOpen').onclick = () => openCalendar();
+$('calPrev').onclick = () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); renderCal(); };
+$('calNext').onclick = () => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1); renderCal(); };
+$('calToday').onclick = () => { calMonth = new Date(); calSel = ymd(new Date()); renderCal(); };
+
+function renderCal() {
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), today = ymd(new Date());
+  $('calTitle').textContent = calMonth.toLocaleDateString([], { month: 'long', year: 'numeric' });
+  const grid = $('calGrid'); grid.textContent = '';
+  const offset = new Date(y, m, 1).getDay();
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(y, m, 1 - offset + i), key = ymd(d);
+    const el = document.createElement('div');
+    el.className = 'day' + (d.getMonth() !== m ? ' out' : '') + (key === today ? ' today' : '') + (key === calSel ? ' sel' : '');
+    const num = document.createElement('div'); num.className = 'num'; num.textContent = d.getDate(); el.append(num);
+    const evs = dayEvents(key);
+    evs.slice(0, 2).forEach(e => { const p = document.createElement('div'); p.className = 'pill'; p.textContent = fmtTime(e).replace(':00', '').replace(' ', '').toLowerCase() + ' ' + e.title; el.append(p); });
+    if (evs.length > 2) { const x = document.createElement('div'); x.className = 'extra'; x.textContent = '+' + (evs.length - 2) + ' more'; el.append(x); }
+    el.onclick = () => { calSel = key; if (d.getMonth() !== m) calMonth = new Date(d.getFullYear(), d.getMonth(), 1); renderCal(); };
+    grid.append(el);
+  }
+  renderDay(); renderNotifState();
+}
+function renderDay() {
+  $('dayTitle').textContent = new Date(calSel + 'T00:00').toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const box = $('dayEvents'); box.textContent = '';
+  const evs = dayEvents(calSel);
+  if (!evs.length) { const e = document.createElement('div'); e.className = 'empty'; e.style.padding = '18px 0 4px'; e.textContent = 'Nothing planned.'; box.append(e); }
+  for (const ev of evs) {
+    const row = document.createElement('div'); row.className = 'ev' + (eventStart(ev) < Date.now() ? ' past' : '');
+    const tx = document.createElement('input'); tx.type = 'text'; tx.value = ev.title; tx.maxLength = 200;
+    tx.oninput = () => { ev.title = tx.value; clearTimeout(evTimer); evTimer = setTimeout(saveEvents, 300); };
+    tx.onchange = () => { saveEvents(); renderCal(); };
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.title = 'Remove';
+    x.onclick = () => { events = events.filter(e => e !== ev); removeToast(ev.id); saveEvents(); renderCal(); };
+    const tm = document.createElement('input'); tm.type = 'time'; tm.value = ev.time;
+    tm.onchange = () => { if (!tm.value) { tm.value = ev.time; return; } ev.time = tm.value; rearm(ev); };
+    const ld = document.createElement('select'); ld.className = 'tsel'; LEADS.forEach(([m, label]) => ld.add(new Option(label, m))); ld.value = ev.lead;
+    ld.onchange = () => { ev.lead = +ld.value; rearm(ev); };
+    row.append(tx, x, tm, ld); box.append(row);
+  }
+}
+// After an event's time changes, its reminder is allowed to fire again (unless the event is already over)
+function rearm(ev) { removeToast(ev.id); ev.notified = false; ev.dismissed = eventStart(ev) < Date.now(); saveEvents(); renderCal(); tick(); }
+
+// "Meeting at 2pm", "Dentist 14:30", "9:15am call" -> { title, time }
+function parseQuick(str) {
+  let h, min, m = str.match(/\b(\d{1,2})(?::([0-5]\d))?\s*([ap])\.?m\b\.?/i);
+  if (m) { h = +m[1]; min = +(m[2] || 0); if (h < 1 || h > 12) return null; h = h % 12 + (m[3].toLowerCase() === 'p' ? 12 : 0); }
+  else { m = str.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/); if (!m) return null; h = +m[1]; min = +m[2]; }
+  const before = str.slice(0, m.index).replace(/(\bat|@)\s*$/i, ''), after = str.slice(m.index + m[0].length);
+  return { title: (before + ' ' + after).replace(/\s+/g, ' ').trim() || 'Reminder', time: pad2(h) + ':' + pad2(min) };
+}
+function addEvent() {
+  const v = $('evQuick').value.trim(); if (!v) return;
+  const r = parseQuick(v);
+  if (!r) { $('evErr').textContent = 'Include a time, like 2pm or 14:30.'; return; }
+  const ev = { id: uid(), title: r.title, date: calSel, time: r.time, lead: +$('evLead').value, notified: false, dismissed: false };
+  ev.dismissed = eventStart(ev) < Date.now();
+  events.push(ev); $('evQuick').value = ''; $('evErr').textContent = '';
+  saveEvents(); renderCal(); tick();
+}
+$('evAdd').onclick = addEvent;
+$('evQuick').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
+$('evQuick').oninput = () => $('evErr').textContent = '';
+
+function renderUpcoming() {
+  const box = $('upcoming'); box.textContent = '';
+  const now = new Date(), today = ymd(now), tomorrow = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const list = events.filter(e => eventStart(e) >= now.getTime()).sort((a, b) => eventStart(a) - eventStart(b)).slice(0, 5);
+  if (!list.length) { const e = document.createElement('div'); e.className = 'empty'; e.style.padding = '10px 0'; e.textContent = 'Nothing scheduled.'; box.append(e); return; }
+  for (const ev of list) {
+    const row = document.createElement('div'); row.className = 'up';
+    const w = document.createElement('span'); w.className = 'w';
+    const day = ev.date === today ? 'Today' : ev.date === tomorrow ? 'Tomorrow' : new Date(ev.date + 'T00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    w.textContent = day + ', ' + fmtTime(ev);
+    const t = document.createElement('span'); t.textContent = ev.title;
+    row.append(w, t); row.onclick = () => openCalendar(ev.date); box.append(row);
+  }
+}
+
+/* ---------- Reminders: pop up in the app (and on the desktop) until Dismiss is pressed ---------- */
+const toastEls = new Map(), sysNotifs = new Map();
+const dur = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+function whenText(ev) {
+  const mins = Math.round((eventStart(ev) - Date.now()) / 60000);
+  return (mins > 0 ? 'Starts in ' + dur(mins) : mins === 0 ? 'Starting now' : 'Started ' + dur(-mins) + ' ago') + ' · ' + fmtTime(ev);
+}
+function notify(title, body, tag) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return null;
+    const n = new Notification(title, { body, tag, requireInteraction: true, icon: 'icon.png' });
+    n.onclick = () => window.focus();
+    return n;
+  } catch { return null; }
+}
+function chime() {
+  try {
+    const a = new AudioContext();
+    [660, 880].forEach((f, i) => {
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + i * 0.18;
+      o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55);
+    });
+    setTimeout(() => a.close(), 1500);
+  } catch {}
+}
+function showReminder(ev) {
+  let el = toastEls.get(ev.id);
+  if (!el) {
+    el = document.createElement('div'); el.className = 'toast';
+    const tt = document.createElement('div'); tt.className = 'tt';
+    const ts = document.createElement('div'); ts.className = 'ts';
+    const b = document.createElement('button'); b.className = 'btn primary small'; b.textContent = 'Dismiss'; b.onclick = () => dismissReminder(ev);
+    el.append(tt, ts, b); $('toasts').append(el); toastEls.set(ev.id, el); chime();
+  }
+  el.querySelector('.tt').textContent = ev.title; el.querySelector('.ts').textContent = whenText(ev);
+  if (!ev.notified) { ev.notified = true; saveEvents(); const n = helperOnline ? null : notify(ev.title, whenText(ev), ev.id); if (n) sysNotifs.set(ev.id, n); } // the helper shows the Windows notification when it is running
+  document.title = '🔔 ' + ev.title + ' · My Notepad';
+}
+function removeToast(id) {
+  const el = toastEls.get(id); if (el) el.remove(); toastEls.delete(id);
+  const n = sysNotifs.get(id); if (n) n.close(); sysNotifs.delete(id);
+  if (!toastEls.size) document.title = 'My Notepad';
+}
+function dismissReminder(ev) { ev.dismissed = true; saveEvents(); removeToast(ev.id); }
+function tick() {
+  const now = Date.now(); let changed = false;
+  for (const ev of events) {
+    if (ev.dismissed) continue;
+    const start = eventStart(ev);
+    if (now >= start + 12 * 3600e3) { ev.dismissed = true; changed = true; removeToast(ev.id); } // long over: stop nagging
+    else if (now >= start - ev.lead * 60000) showReminder(ev);
+  }
+  if (changed) saveEvents();
+}
+setInterval(() => { tick(); syncHelper(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+function renderNotifState() {
+  const st = $('notifState'), b = $('notifBtn');
+  if (helperOnline) { st.textContent = 'Windows reminders are on, even when this app is closed.'; b.textContent = 'Send a test'; b.hidden = false; }
+  else if (!('Notification' in window)) { st.textContent = 'Reminders pop up inside the app. Desktop notifications are not available here.'; b.hidden = true; }
+  else if (Notification.permission === 'granted') { st.textContent = 'Desktop notifications are on.'; b.textContent = 'Send a test'; b.hidden = false; }
+  else if (Notification.permission === 'denied') { st.textContent = 'Reminders pop up inside the app. Desktop notifications are blocked for this app.'; b.hidden = true; }
+  else { st.textContent = 'Reminders pop up inside the app.'; b.textContent = 'Turn on desktop notifications'; b.hidden = false; }
+}
+$('notifBtn').onclick = async () => {
+  if (helperOnline) { try { await fetch(HELPER + '/test', { method: 'POST' }); } catch {} return; }
+  if (Notification.permission !== 'granted') { try { await Notification.requestPermission(); } catch {} renderNotifState(); }
+  if (Notification.permission === 'granted') { const n = notify('Test reminder', 'This is how a reminder will look.', 'test'); if (n) setTimeout(() => n.close(), 8000); }
+};
+
+/* ---------- Sections: add / rename / delete ---------- */
+const saveSections = () => metaSet('sections', sections);
+function sectionMenu(s, anchor) {
+  const m = $('menu'); m.textContent = '';
+  const add = (label, fn, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = () => { m.style.display = 'none'; fn(); }; m.append(b); };
+  add('Rename', () => { const v = prompt('Section name', s.name); if (v && v.trim()) { s.name = v.trim(); saveSections(); renderSections(); if (s === curSection) $('sectionTitle').textContent = s.name; } });
+  if (s.locked && lockMeta) { add('Change password', openPwDialog); add('Backup question', openBqDialog); }
+  if (!s.locked) add('Delete section', async () => {
+    const c = sectionNotes(s.id).length;
+    if (!confirm('Delete "' + s.name + '"' + (c ? ' and its ' + c + ' note(s)' : '') + '? This cannot be undone.')) return;
+    if (curSection === s) { clearTimeout(saveTimer); dirty = false; curNote = null; }
+    for (const n of sectionNotes(s.id)) { notes.delete(n.id); await idb('notes', 'readwrite', st => st.delete(n.id)); }
+    sections = sections.filter(x => x !== s); await saveSections();
+    if (curSection === s) openHome(); else renderSections();
+  }, 'danger');
+  const r = anchor.getBoundingClientRect();
+  m.style.display = 'block'; m.style.left = r.left + 'px'; m.style.top = (r.bottom + 4) + 'px';
+}
+document.addEventListener('mousedown', e => { if (!$('menu').contains(e.target)) $('menu').style.display = 'none'; });
+$('addSection').onclick = () => {
+  const v = prompt('New section name'); if (!v || !v.trim()) return;
+  const s = { id: uid(), name: v.trim() }; sections.push(s); saveSections(); openSection(s);
+};
+
+/* ---------- Journal lock ----------
+   One random master key encrypts the entries. That key is stored locked by the password and,
+   if a backup question is set, a second copy locked by the answer. Changing the password or
+   the question only re-locks the master key; the entries themselves are untouched. */
+const importMK = raw => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+const normAnswer = a => a.trim().toLowerCase().replace(/\s+/g, ' ');
+async function wrapMK(secret, raw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { salt: toB64(salt), box: await encrypt(await deriveKey(secret, salt), toB64(raw)) };
+}
+async function unwrapMK(secret, w) { return fromB64(await decrypt(await deriveKey(secret, fromB64(w.salt)), w.box)); } // throws if the secret is wrong
+async function mkFromPassword(pw) { // -> master key bytes, or null if the password is wrong
+  if (lockMeta.v === 2) { try { return await unwrapMK(pw, lockMeta.pw); } catch { return null; } }
+  // older format: entries were encrypted directly with the password's key, so that key becomes the master key
+  const key = await deriveKey(pw, fromB64(lockMeta.salt), true);
+  try { await decrypt(key, lockMeta.check); } catch { return null; }
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+  lockMeta = { v: 2, pw: await wrapMK(pw, raw) }; await metaSet('lock', lockMeta);
+  return raw;
+}
+async function unlockWith(raw) {
+  const key = await importMK(raw);
+  for (const n of notes.values()) if (n.enc) Object.assign(n, JSON.parse(await decrypt(key, n.enc)));
+  lockKey = key;
+}
+function flash(msg) {
+  const m = $('menu'); m.textContent = ''; const d = document.createElement('div'); d.textContent = msg; d.style.padding = '8px 12px';
+  m.append(d); m.style.display = 'block'; m.style.left = '220px'; m.style.top = '16px'; setTimeout(() => m.style.display = 'none', 2500);
+}
+function showLockScreen() {
+  const first = !lockMeta;
+  $('lockTitle').textContent = first ? 'Protect your ' + curSection.name : curSection.name + ' is locked';
+  $('lockText').textContent = first
+    ? 'Choose a password. Add a backup question too: without one, a forgotten password cannot be recovered.'
+    : 'Enter your password to open it.';
+  $('pw2').hidden = $('bq').hidden = $('ba').hidden = !first; $('lockGo').textContent = first ? 'Set password' : 'Unlock';
+  $('forgotBtn').hidden = first || !lockMeta.hint;
+  $('pw1').value = $('pw2').value = $('bq').value = $('ba').value = ''; $('lockErr').textContent = '';
+  setTimeout(() => $('pw1').focus(), 0);
+}
+$('lockForm').onsubmit = async e => {
+  e.preventDefault();
+  const pw = $('pw1').value, err = $('lockErr');
+  $('lockGo').disabled = true;
+  try {
+    if (!lockMeta) {
+      const q = $('bq').value.trim(), a = normAnswer($('ba').value);
+      if (pw.length < 4) { err.textContent = 'Use at least 4 characters.'; return; }
+      if (pw !== $('pw2').value) { err.textContent = 'The two passwords do not match.'; return; }
+      if (q && !a) { err.textContent = 'Type an answer to your backup question.'; return; }
+      if (!q && a) { err.textContent = 'Type the backup question for that answer.'; return; }
+      const raw = crypto.getRandomValues(new Uint8Array(32));
+      const meta = { v: 2, pw: await wrapMK(pw, raw) };
+      if (q) meta.hint = { question: q, ...(await wrapMK(a, raw)) };
+      await metaSet('lock', meta); lockMeta = meta; lockKey = await importMK(raw);
+    } else {
+      const raw = await mkFromPassword(pw);
+      if (!raw) { err.textContent = 'Wrong password.'; $('pw1').select(); return; }
+      await unlockWith(raw);
+    }
+    $('pw1').value = $('pw2').value = $('bq').value = $('ba').value = '';
+    openSection(curSection);
+  } finally { $('lockGo').disabled = false; }
+};
+async function lockNow() {
+  if (!lockKey) return;
+  await flush();
+  lockKey = null;
+  const ids = new Set(sections.filter(s => s.locked).map(s => s.id));
+  for (const n of notes.values()) if (ids.has(n.sectionId)) { delete n.title; delete n.html; delete n.text; }
+  if (curSection && curSection.locked) { curNote = null; editor.innerHTML = ''; $('title').value = ''; openSection(curSection); }
+  else renderSections();
+}
+$('lockBtn').onclick = lockNow;
+
+// Change password (needs the current one)
+function openPwDialog() { $('pwForm').reset(); $('cpErr').textContent = ''; $('pwDlg').showModal(); }
+$('cpCancel').onclick = () => $('pwDlg').close();
+$('pwForm').onsubmit = async e => {
+  e.preventDefault();
+  const err = $('cpErr'), nw = $('cpNew').value;
+  $('cpGo').disabled = true;
+  try {
+    const raw = await mkFromPassword($('cpOld').value);
+    if (!raw) { err.textContent = 'Current password is wrong.'; $('cpOld').select(); return; }
+    if (nw.length < 4) { err.textContent = 'Use at least 4 characters.'; return; }
+    if (nw !== $('cpNew2').value) { err.textContent = 'The two new passwords do not match.'; return; }
+    const meta = { ...lockMeta, pw: await wrapMK(nw, raw) };
+    await metaSet('lock', meta); lockMeta = meta;
+    $('pwForm').reset(); $('pwDlg').close(); flash('Password changed');
+  } catch (ex) { console.error(ex); err.textContent = 'Something went wrong. The password was not changed.'; }
+  finally { $('cpGo').disabled = false; }
+};
+
+// Backup question: set or replace it (needs the current password)
+function openBqDialog() { $('bqForm').reset(); $('bqErr').textContent = ''; $('bqQ').value = (lockMeta.hint && lockMeta.hint.question) || ''; $('bqDlg').showModal(); }
+$('bqCancel').onclick = () => $('bqDlg').close();
+$('bqForm').onsubmit = async e => {
+  e.preventDefault();
+  const err = $('bqErr'), q = $('bqQ').value.trim(), a = normAnswer($('bqA').value);
+  $('bqGo').disabled = true;
+  try {
+    const raw = await mkFromPassword($('bqPw').value);
+    if (!raw) { err.textContent = 'Current password is wrong.'; $('bqPw').select(); return; }
+    if (!q || !a) { err.textContent = 'Fill in both the question and the answer.'; return; }
+    const meta = { ...lockMeta, hint: { question: q, ...(await wrapMK(a, raw)) } };
+    await metaSet('lock', meta); lockMeta = meta;
+    $('bqForm').reset(); $('bqDlg').close(); flash('Backup question saved');
+  } catch (ex) { console.error(ex); err.textContent = 'Something went wrong. Nothing was changed.'; }
+  finally { $('bqGo').disabled = false; }
+};
+
+// Forgot password: the right answer unlocks the master key, then a new password is set
+$('forgotBtn').onclick = () => { $('fgForm').reset(); $('fgErr').textContent = ''; $('fgQ').textContent = lockMeta.hint.question; $('fgDlg').showModal(); };
+$('fgCancel').onclick = () => $('fgDlg').close();
+$('fgForm').onsubmit = async e => {
+  e.preventDefault();
+  const err = $('fgErr'), nw = $('fgNew').value;
+  $('fgGo').disabled = true;
+  try {
+    let raw; try { raw = await unwrapMK(normAnswer($('fgA').value), lockMeta.hint); } catch { err.textContent = 'That answer is not right.'; $('fgA').select(); return; }
+    if (nw.length < 4) { err.textContent = 'Use at least 4 characters for the new password.'; return; }
+    if (nw !== $('fgNew2').value) { err.textContent = 'The two new passwords do not match.'; return; }
+    const meta = { ...lockMeta, pw: await wrapMK(nw, raw) };
+    await metaSet('lock', meta); lockMeta = meta;
+    await unlockWith(raw);
+    $('fgForm').reset(); $('fgDlg').close(); flash('Password reset');
+    if (curSection) openSection(curSection);
+  } catch (ex) { console.error(ex); err.textContent = 'Something went wrong. The password was not changed.'; }
+  finally { $('fgGo').disabled = false; }
+};
+
+/* ---------- Editor formatting ---------- */
+document.addEventListener('selectionchange', () => {
+  const sel = getSelection();
+  if (sel.rangeCount && editor.contains(sel.anchorNode)) { savedRange = sel.getRangeAt(0).cloneRange(); refreshToolbar(); }
+});
+function restoreSel() {
+  editor.focus();
+  if (savedRange) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(savedRange); }
+}
+function exec(cmd, val) { restoreSel(); document.execCommand('styleWithCSS', false, true); document.execCommand(cmd, false, val); markDirty(); refreshToolbar(); }
+function refreshToolbar() {
+  for (const b of document.querySelectorAll('.tb[data-cmd]')) {
+    const c = b.dataset.cmd;
+    if (/^(bold|italic|underline|strikeThrough|justify|insert(Un)?orderedList)/i.test(c) && c !== 'insertHorizontalRule')
+      try { b.classList.toggle('on', document.queryCommandState(c)); } catch {}
+  }
+  const sel = getSelection(); if (!sel.rangeCount) return;
+  let el = sel.anchorNode; if (el && el.nodeType === 3) el = el.parentElement;
+  if (!el || !editor.contains(el)) return;
+  const cs = getComputedStyle(el);
+  const fam = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim().toLowerCase();
+  const fi = FONTS.findIndex(f => f[0].toLowerCase() === fam); $('font').selectedIndex = fi < 0 ? 0 : fi;
+  const pt = Math.round(parseFloat(cs.fontSize) * 0.75); $('size').value = SIZES.includes(pt) ? pt : '';
+}
+for (const b of document.querySelectorAll('.tb[data-cmd]')) {
+  b.addEventListener('mousedown', e => e.preventDefault());
+  b.addEventListener('click', () => exec(b.dataset.cmd));
+}
+FONTS.forEach(([name, stack]) => { const o = new Option(name, stack); o.style.fontFamily = stack; $('font').add(o); });
+$('size').add(new Option('–', '')); SIZES.forEach(s => $('size').add(new Option(s, s)));
+$('size').value = 12;
+$('font').onchange = () => exec('fontName', $('font').value);
+$('size').onchange = () => {
+  const pt = $('size').value; if (!pt) return;
+  restoreSel(); document.execCommand('styleWithCSS', false, false); document.execCommand('fontSize', false, '7');
+  editor.querySelectorAll('font[size="7"]').forEach(f => { f.removeAttribute('size'); f.style.fontSize = pt + 'pt'; });
+  markDirty();
+};
+$('foreColor').oninput = e => { $('fcBar').style.background = e.target.value; exec('foreColor', e.target.value); };
+$('hiliteColor').oninput = e => { $('hlBar').style.background = e.target.value; exec('hiliteColor', e.target.value); };
+$('moreBtn').onmousedown = e => e.preventDefault();
+$('moreBtn').onclick = () => { const r = $('moreRow'); r.hidden = !r.hidden; $('moreBtn').classList.toggle('on', !r.hidden); $('moreBtn').textContent = r.hidden ? 'More ▾' : 'Less ▴'; metaSet('moreOpen', !r.hidden); };
+
+// Line / paragraph spacing apply to every paragraph touched by the selection
+function selectedBlocks() {
+  restoreSel();
+  const sel = getSelection(); if (!sel.rangeCount) return [];
+  const find = () => [...editor.children].filter(el => sel.getRangeAt(0).intersectsNode(el));
+  let out = find();
+  if (!out.length) { document.execCommand('formatBlock', false, 'p'); out = find(); }
+  return out;
+}
+$('lineSp').onchange = e => { if (e.target.value) { selectedBlocks().forEach(b => b.style.lineHeight = e.target.value); markDirty(); } e.target.value = ''; };
+$('paraSp').onchange = e => { if (e.target.value !== '') { selectedBlocks().forEach(b => b.style.marginBottom = e.target.value + 'px'); markDirty(); } e.target.value = ''; };
+
+/* ---------- Pictures & screenshots ---------- */
+function insertImageFile(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => { restoreSel(); document.execCommand('insertHTML', false, '<img src="' + r.result + '" alt="">'); markDirty(); res(); };
+    r.readAsDataURL(file);
+  });
+}
+$('imgBtn').onmousedown = e => e.preventDefault();
+$('imgBtn').onclick = () => $('imgFile').click();
+$('imgFile').onchange = async e => { for (const f of e.target.files) await insertImageFile(f); e.target.value = ''; };
+editor.addEventListener('paste', async e => {
+  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file' && i.type.startsWith('image/')).map(i => i.getAsFile());
+  if (files.length) { e.preventDefault(); for (const f of files) await insertImageFile(f); }
+});
+editor.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
+editor.addEventListener('drop', async e => {
+  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  e.preventDefault();
+  const r = document.caretRangeFromPoint && document.caretRangeFromPoint(e.clientX, e.clientY); if (r) savedRange = r;
+  for (const f of files) await insertImageFile(f);
+});
+function hideImgBar() { if (selImg) selImg.classList.remove('sel'); selImg = null; $('imgBar').style.display = 'none'; }
+editor.addEventListener('click', e => {
+  hideImgBar();
+  if (e.target.tagName !== 'IMG') return;
+  selImg = e.target; selImg.classList.add('sel');
+  const bar = $('imgBar'), wrap = $('editorWrap'), ir = selImg.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+  bar.style.display = 'flex';
+  bar.style.left = (ir.left - wr.left + 8) + 'px';
+  bar.style.top = (ir.top - wr.top + wrap.scrollTop + 8) + 'px';
+});
+$('imgBar').addEventListener('mousedown', e => e.preventDefault());
+$('imgBar').addEventListener('click', e => {
+  const w = e.target.dataset.w; if (w === undefined || !selImg) return;
+  if (w === 'x') selImg.remove(); else selImg.style.width = w;
+  hideImgBar(); markDirty();
+});
+
+/* ---------- Wiring ---------- */
+editor.addEventListener('input', () => { markDirty(); updateWords(); });
+$('title').addEventListener('input', markDirty);
+$('title').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); editor.focus(); } });
+$('search').addEventListener('input', renderNotes);
+$('newNote').onclick = newNote;
+$('delNote').onclick = deleteNote;
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); flush(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+window.addEventListener('beforeunload', () => { flush(); });
+
+/* ---------- Backup ---------- */
+$('exportBtn').onclick = async () => {
+  await flush();
+  const data = { app: 'mynotepad', version: 1, exported: new Date().toISOString(), sections, lock: lockMeta, todos, events, notes: await idb('notes', 'readonly', s => s.getAll()) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = 'mynotepad-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data; try { data = JSON.parse(await f.text()); } catch { return alert('That file is not a valid backup.'); }
+  if (data.app !== 'mynotepad' || !Array.isArray(data.notes) || !Array.isArray(data.sections)) return alert('That file is not a My Notepad backup.');
+  if (!confirm('Replace everything currently in the app with this backup (' + data.notes.length + ' notes)?')) return;
+  clearTimeout(saveTimer); dirty = false;
+  await idb('notes', 'readwrite', s => { s.clear(); data.notes.forEach(n => s.put(n)); });
+  await metaSet('sections', data.sections); await metaSet('lock', data.lock || null);
+  if (Array.isArray(data.todos)) await metaSet('todos', data.todos);
+  if (Array.isArray(data.events)) await metaSet('events', data.events);
+  location.reload();
+};
+
+/* ---------- Themes & light/dark ---------- */
+const FAVS = { lavender: 'icon.png', teal: 'icon-teal.png', blue: 'icon-blue.png' }; // the app icon follows the theme, not light/dark
+function applyTheme(theme, mode) {
+  const r = document.documentElement;
+  if (!FAVS[theme]) theme = 'lavender';
+  r.dataset.theme = theme; r.dataset.mode = mode === 'dark' ? 'dark' : 'light';
+  try { localStorage.setItem('np-theme', theme); localStorage.setItem('np-mode', r.dataset.mode); } catch {}
+  $('fav').href = FAVS[theme];
+  document.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.dataset.theme === theme));
+  $('modeBtn').textContent = r.dataset.mode === 'dark' ? '☀ Light' : '☾ Dark';
+}
+document.querySelectorAll('.sw').forEach(b => b.onclick = () => applyTheme(b.dataset.theme, document.documentElement.dataset.mode));
+$('modeBtn').onclick = () => applyTheme(document.documentElement.dataset.theme, document.documentElement.dataset.mode === 'dark' ? 'light' : 'dark');
+applyTheme(document.documentElement.dataset.theme, document.documentElement.dataset.mode);
+
+/* ---------- Full screen: hide the side panels so only the note shows ---------- */
+function setFocus(on) {
+  document.body.classList.toggle('focus', on);
+  $('focusBtn').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen'; $('focusBtn').classList.toggle('on', on);
+  try {
+    if (on && !document.fullscreenElement) { const p = document.documentElement.requestFullscreen(); if (p) p.catch(() => {}); }
+    if (!on && document.fullscreenElement) document.exitFullscreen();
+  } catch {}
+}
+$('focusBtn').onmousedown = e => e.preventDefault();
+$('focusBtn').onclick = () => setFocus(!document.body.classList.contains('focus'));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('focus')) setFocus(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('focus') && !document.querySelector('dialog[open]')) setFocus(false); });
+
+/* ---------- Start ---------- */
+(async function init() {
+  document.execCommand('defaultParagraphSeparator', false, 'p');
+  sections = await metaGet('sections');
+  if (!sections) { sections = DEFAULT_SECTIONS.map(s => ({ id: uid(), ...s })); await saveSections(); }
+  lockMeta = (await metaGet('lock')) || null;
+  for (const n of await idb('notes', 'readonly', s => s.getAll())) notes.set(n.id, n);
+  if (await metaGet('moreOpen')) $('moreBtn').click();
+  events = (await metaGet('events')) || [];
+  todos = (await metaGet('todos')) || []; lastNotes = (await metaGet('lastNotes')) || {};
+  const last = await metaGet('lastSection');
+  const start = sections.find(s => s.id === last);
+  if (start) openSection(start); else if (last === 'calendar') openCalendar(); else openHome(); // reopen wherever you left off
+  await syncHelper(); tick();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+})();
+</script>
+</body>
+</html>
