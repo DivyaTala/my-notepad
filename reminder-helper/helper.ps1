@@ -36,12 +36,16 @@ function Load-State {
   } catch { Log "load failed: $_" }
 }
 
-function Show-Toast($title, $line, $tag) {
+function Show-Toast($title, $line, $tag, $place, $url) {
   $t = [System.Security.SecurityElement]::Escape([string]$title)
   $l = [System.Security.SecurityElement]::Escape([string]$line)
   # scenario='reminder' keeps the notification on screen until Dismiss is pressed
-  $xml = "<toast scenario='reminder'><visual><binding template='ToastGeneric'><text>$t</text><text>$l</text></binding></visual>" +
-         "<actions><action activationType='system' arguments='dismiss' content=''/></actions>" +
+  # optional third line (location) and an "Open link" button when the event has a web link
+  $third = ''; $open = ''
+  if ($url -and ([string]$url) -match '^https?://') { $open = "<action content='Open link' activationType='protocol' arguments='" + [System.Security.SecurityElement]::Escape([string]$url) + "'/>" }
+  elseif ($place) { $third = '<text>' + [System.Security.SecurityElement]::Escape([string]$place) + '</text>' }
+  $xml = "<toast scenario='reminder'><visual><binding template='ToastGeneric'><text>$t</text><text>$l</text>$third</binding></visual>" +
+         "<actions>$open<action activationType='system' arguments='dismiss' content=''/></actions>" +
          "<audio src='ms-winsoundevent:Notification.Reminder'/></toast>"
   $doc = New-Object Windows.Data.Xml.Dom.XmlDocument
   $doc.LoadXml($xml)
@@ -49,7 +53,7 @@ function Show-Toast($title, $line, $tag) {
   $toast.Tag = [string]$tag; $toast.Group = 'rem'
   [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($AppId).Show($toast)
 }
-function Remove-Toast($tag) { try { [Windows.UI.Notifications.ToastNotificationManager]::History.Remove([string]$tag, 'rem', $AppId) } catch {} }
+function Remove-Toast($tag) { try { [Windows.UI.Notifications.ToastNotificationManager]::History.Remove([string]$tag, 'rem', $AppId) } catch { Log "remove failed for ${tag}: $_" } }
 function Get-ToastTags { try { @([Windows.UI.Notifications.ToastNotificationManager]::History.GetHistory($AppId) | ForEach-Object { $_.Tag }) } catch { $null } }
 
 function Get-Start($e) { try { [datetime]::ParseExact("$($e.date) $($e.time)", 'yyyy-MM-dd HH:mm', [cultureinfo]::InvariantCulture) } catch { $null } }
@@ -65,7 +69,7 @@ function Do-Timer {
       if ($now -ge $start.AddMinutes(-[int]$e.lead)) {
         $mins = [int][math]::Round(($start - $now).TotalMinutes); $when = $start.ToString('h:mm tt')
         $line = if ($mins -ge 60) { "Starts at $when" } elseif ($mins -gt 0) { "Starts in $mins min, at $when" } elseif ($mins -eq 0) { "Starting now, $when" } else { "Started at $when" }
-        try { Show-Toast $e.title $line $e.id; Log "notified: $($e.title) ($when)" } catch { Log "toast failed: $_" }
+        try { Show-Toast $e.title $line $e.id $e.place $e.url; Log "notified: $($e.title) ($when)" } catch { Log "toast failed: $_" }
         $state.fired[$k] = $true; $changed = $true
       }
     } else {
@@ -87,6 +91,8 @@ function Do-Sync($body) {
     $k = Key $e; $keys[$k] = $true
     if ($e.dismissed -and -not $state.dismissed[$k]) { $state.dismissed[$k] = $true; if ($state.fired[$k]) { Remove-Toast $e.id } }
   }
+  # an event that was deleted or re-timed while its notification is showing: take the old notification down
+  foreach ($k in @($state.fired.Keys)) { if (-not $keys[$k] -and -not $state.dismissed[$k]) { Remove-Toast ($k -split '\|')[0] } }
   foreach ($n in 'fired', 'seen', 'dismissed') { foreach ($k in @($state[$n].Keys)) { if (-not $keys[$k]) { $state[$n].Remove($k) } } }
   Save-State
   Do-Timer

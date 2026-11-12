@@ -212,10 +212,15 @@
   .ev select { height: 28px; flex: 1; min-width: 0; }
   .ev .x { border: 0; background: none; color: var(--muted); font-size: 16px; border-radius: 4px; padding: 0 6px; }
   .ev .x:hover { color: var(--danger); }
-  #evQuick { width: 100%; margin: 14px 0 8px; padding: 9px 12px; border: 1px dashed var(--edge); border-radius: 8px; outline: none; background: none; }
-  #evQuick:focus { border-style: solid; border-color: var(--accent); }
+  #evQuick, #evPlace { width: 100%; margin: 14px 0 8px; padding: 9px 12px; border: 1px dashed var(--edge); border-radius: 8px; outline: none; background: none; }
+  #evPlace { margin-top: 8px; }
+  #evQuick:focus, #evPlace:focus { border-style: solid; border-color: var(--accent); }
   .ev-add { display: flex; align-items: center; gap: 6px; }
-  .ev-add select { flex: 1; }
+  .ev-add select, .ev-add input[type=time] { flex: 1; }
+  .ev-add .lbl { width: 62px; flex: none; margin-left: 0; }
+  .ev input.pl { font-weight: 400; font-size: 13px; color: var(--muted); flex: 1 1 60%; }
+  .ev a, .toast a { color: var(--accent); font-size: 13px; white-space: nowrap; }
+  .toast .tp { color: var(--muted); font-size: 13px; margin: -6px 0 10px; overflow-wrap: anywhere; }
   .up { display: flex; gap: 12px; padding: 7px 4px; border-radius: 8px; cursor: pointer; }
   .up:hover { background: var(--bg); }
   .up .w { color: var(--accent2); width: 160px; flex: none; font-size: 13px; }
@@ -365,7 +370,9 @@
       <div class="card cal-day">
         <h2 id="dayTitle"></h2>
         <div id="dayEvents"></div>
-        <input id="evQuick" placeholder="e.g. Meeting at 2pm" maxlength="200">
+        <input id="evQuick" placeholder="What is it? e.g. Team meeting" maxlength="200">
+        <div class="ev-add"><span class="lbl">Time</span><input type="time" class="tsel" id="evTime" title="Choose a time"></div>
+        <input id="evPlace" placeholder="Link or location (optional)" maxlength="500">
         <div class="ev-add"><span class="lbl">Remind me</span><select class="tsel" id="evLead"></select><button class="btn primary small" id="evAdd">Add</button></div>
         <div class="err" id="evErr" style="margin-top:8px"></div>
       </div>
@@ -747,6 +754,8 @@ const pad2 = n => String(n).padStart(2, '0');
 const ymd = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 const eventStart = ev => new Date(ev.date + 'T' + ev.time).getTime();
 const fmtTime = ev => new Date(eventStart(ev)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+// A link/location counts as a link when it looks like a web address; returns the address to open, or null
+const toUrl = t => { t = (t || '').trim(); return /^https?:\/\/\S+$/i.test(t) ? t : /^([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(t) ? 'https://' + t : null; };
 const dayEvents = key => events.filter(e => e.date === key).sort((a, b) => a.time.localeCompare(b.time));
 const saveEvents = () => { clearTimeout(syncTimer); syncTimer = setTimeout(syncHelper, 400); return metaSet('events', events); };
 
@@ -757,7 +766,7 @@ let helperOnline = false, syncTimer = null;
 async function syncHelper() {
   const was = helperOnline;
   try {
-    const body = JSON.stringify({ events: events.map(e => ({ id: e.id, title: e.title, date: e.date, time: e.time, lead: e.lead, dismissed: !!e.dismissed })) });
+    const body = JSON.stringify({ events: events.map(e => ({ id: e.id, title: e.title, date: e.date, time: e.time, lead: e.lead, dismissed: !!e.dismissed, place: e.place || '', url: toUrl(e.place) || '' })) });
     const r = await fetch(HELPER + '/sync', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body });
     const j = await r.json(); helperOnline = !!j.ok;
     let changed = false;
@@ -816,7 +825,13 @@ function renderDay() {
     tm.onchange = () => { if (!tm.value) { tm.value = ev.time; return; } ev.time = tm.value; rearm(ev); };
     const ld = document.createElement('select'); ld.className = 'tsel'; LEADS.forEach(([m, label]) => ld.add(new Option(label, m))); ld.value = ev.lead;
     ld.onchange = () => { ev.lead = +ld.value; rearm(ev); };
-    row.append(tx, x, tm, ld); box.append(row);
+    const pl = document.createElement('input'); pl.type = 'text'; pl.className = 'pl'; pl.value = ev.place || ''; pl.placeholder = 'Link or location'; pl.maxLength = 500;
+    pl.oninput = () => { ev.place = pl.value.trim(); clearTimeout(evTimer); evTimer = setTimeout(saveEvents, 300); };
+    pl.onchange = () => { saveEvents(); renderDay(); };
+    row.append(tx, x, tm, ld, pl);
+    const url = toUrl(ev.place);
+    if (url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open'; row.append(a); }
+    box.append(row);
   }
 }
 // After an event's time changes, its reminder is allowed to fire again (unless the event is already over)
@@ -831,17 +846,21 @@ function parseQuick(str) {
   return { title: (before + ' ' + after).replace(/\s+/g, ' ').trim() || 'Reminder', time: pad2(h) + ':' + pad2(min) };
 }
 function addEvent() {
-  const v = $('evQuick').value.trim(); if (!v) return;
-  const r = parseQuick(v);
-  if (!r) { $('evErr').textContent = 'Include a time, like 2pm or 14:30.'; return; }
-  const ev = { id: uid(), title: r.title, date: calSel, time: r.time, lead: +$('evLead').value, notified: false, dismissed: false };
+  const v = $('evQuick').value.trim(), place = $('evPlace').value.trim();
+  let title = v, time = $('evTime').value;
+  if (!v && !time && !place) return;
+  if (!time) { // no time chosen: accept one typed in the title, like "Meeting at 2pm"
+    const r = parseQuick(v);
+    if (!r) { $('evErr').textContent = 'Choose a time.'; $('evTime').focus(); return; }
+    title = r.title; time = r.time;
+  }
+  const ev = { id: uid(), title: title || 'Reminder', date: calSel, time, place, lead: +$('evLead').value, notified: false, dismissed: false };
   ev.dismissed = eventStart(ev) < Date.now();
-  events.push(ev); $('evQuick').value = ''; $('evErr').textContent = '';
+  events.push(ev); $('evQuick').value = $('evTime').value = $('evPlace').value = ''; $('evErr').textContent = '';
   saveEvents(); renderCal(); tick();
 }
 $('evAdd').onclick = addEvent;
-$('evQuick').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
-$('evQuick').oninput = () => $('evErr').textContent = '';
+for (const id of ['evQuick', 'evTime', 'evPlace']) { $(id).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addEvent(); } }; $(id).oninput = () => $('evErr').textContent = ''; }
 
 function renderUpcoming() {
   const box = $('upcoming'); box.textContent = '';
@@ -853,7 +872,7 @@ function renderUpcoming() {
     const w = document.createElement('span'); w.className = 'w';
     const day = ev.date === today ? 'Today' : ev.date === tomorrow ? 'Tomorrow' : new Date(ev.date + 'T00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
     w.textContent = day + ', ' + fmtTime(ev);
-    const t = document.createElement('span'); t.textContent = ev.title;
+    const t = document.createElement('span'); t.textContent = ev.title + (ev.place && !toUrl(ev.place) ? ' · ' + ev.place : '');
     row.append(w, t); row.onclick = () => openCalendar(ev.date); box.append(row);
   }
 }
@@ -891,9 +910,12 @@ function showReminder(ev) {
     const tt = document.createElement('div'); tt.className = 'tt';
     const ts = document.createElement('div'); ts.className = 'ts';
     const b = document.createElement('button'); b.className = 'btn primary small'; b.textContent = 'Dismiss'; b.onclick = () => dismissReminder(ev);
-    el.append(tt, ts, b); $('toasts').append(el); toastEls.set(ev.id, el); chime();
+    const tp = document.createElement('div'); tp.className = 'tp';
+    el.append(tt, ts, tp, b); $('toasts').append(el); toastEls.set(ev.id, el); chime();
   }
   el.querySelector('.tt').textContent = ev.title; el.querySelector('.ts').textContent = whenText(ev);
+  const tp = el.querySelector('.tp'), url = toUrl(ev.place); tp.textContent = ''; tp.hidden = !ev.place;
+  if (url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open link'; tp.append(a); } else tp.textContent = ev.place || '';
   if (!ev.notified) { ev.notified = true; saveEvents(); const n = helperOnline ? null : notify(ev.title, whenText(ev), ev.id); if (n) sysNotifs.set(ev.id, n); } // the helper shows the Windows notification when it is running
   document.title = '🔔 ' + ev.title + ' · My Notepad';
 }
