@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Notepad</title>
 <link rel="icon" type="image/png" id="fav" href="icon.png">
-<script>(function(){try{var d=document.documentElement;d.dataset.theme=localStorage.getItem('np-theme')||'lavender';d.dataset.mode=localStorage.getItem('np-mode')||'light';}catch(e){}})()</script>
+<script>(function(){try{var d=document.documentElement;d.dataset.theme=localStorage.getItem('np-theme')||'lavender';d.dataset.mode=localStorage.getItem('np-mode')||'light';if(window.desktopApp){d.classList.add('mica');window.desktopApp.setMode(d.dataset.mode);}}catch(e){}})()</script>
 <style>
   /* ---------- Themes: each block is one colour set. Edit the values to restyle the app. ---------- */
   :root, html[data-theme="lavender"] {
@@ -228,6 +228,20 @@
   .toast { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--accent2); border-radius: 12px; padding: 14px 16px; width: 300px; box-shadow: 0 12px 40px rgb(var(--shadow) / .22); }
   .toast .tt { font-weight: 650; font-size: 15px; overflow-wrap: anywhere; }
   .toast .ts { color: var(--muted); margin: 3px 0 10px; }
+  /* ---------- Mica (desktop app on Windows 11): let the window material show through the side areas ---------- */
+  html.mica { background: transparent; }
+  /* the blurred wallpaper, sized to the screen and shifted so it lines up with the desktop behind the window */
+  html.mica::before { content: ''; position: fixed; z-index: -1; pointer-events: none;
+    left: calc(var(--bx, 0px) * -1); top: calc(var(--by, 0px) * -1); width: var(--bw, 100vw); height: var(--bh, 100vh);
+    background: var(--bimg, none) center / cover no-repeat; filter: blur(34px) saturate(1.3); transform: scale(1.06); }
+  html.mica body { background: transparent; }
+  html.mica #app { background: color-mix(in srgb, var(--bg) 58%, transparent); } /* the tint sits on top of the wallpaper */
+  html.mica #sidebar { background: color-mix(in srgb, var(--panel) 22%, transparent); border-right-color: color-mix(in srgb, var(--line) 55%, transparent); }
+  html.mica #listPane { background: transparent; border-right-color: color-mix(in srgb, var(--line) 55%, transparent); }
+  html.mica #homePane, html.mica #calPane, html.mica #lockPane { background: transparent; }
+  html.mica #editorPane { background: color-mix(in srgb, var(--paper) 66%, transparent); }
+  html.mica #toolbar { background: transparent; }
+  html.mica #search, html.mica .side-foot { border-color: color-mix(in srgb, var(--line) 70%, transparent); }
   /* ---------- Theme picker ---------- */
   .theme-row { display: flex; align-items: center; gap: 9px; padding: 4px 10px 8px; }
   .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--panel); outline: 1px solid var(--faint); padding: 0; }
@@ -1245,12 +1259,21 @@ function applyTheme(theme, mode) {
   r.dataset.theme = theme; r.dataset.mode = mode === 'dark' ? 'dark' : 'light';
   try { localStorage.setItem('np-theme', theme); localStorage.setItem('np-mode', r.dataset.mode); } catch {}
   $('fav').href = FAVS[theme];
+  if (window.desktopApp) window.desktopApp.setMode(r.dataset.mode); // desktop app: keep the Mica material light or dark to match
   document.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.dataset.theme === theme));
   $('modeBtn').textContent = r.dataset.mode === 'dark' ? '☀ Light' : '☾ Dark';
 }
 document.querySelectorAll('.sw').forEach(b => b.onclick = () => applyTheme(b.dataset.theme, document.documentElement.dataset.mode));
 $('modeBtn').onclick = () => applyTheme(document.documentElement.dataset.theme, document.documentElement.dataset.mode === 'dark' ? 'light' : 'dark');
 applyTheme(document.documentElement.dataset.theme, document.documentElement.dataset.mode);
+if (window.desktopApp && window.desktopApp.onBackdrop) { // desktop app: position the blurred-wallpaper backdrop
+  window.desktopApp.onBackdrop(d => {
+    const st = document.documentElement.style;
+    st.setProperty('--bimg', d.url ? 'url("' + d.url + '")' : 'none');
+    st.setProperty('--bx', d.x + 'px'); st.setProperty('--by', d.y + 'px'); st.setProperty('--bw', d.w + 'px'); st.setProperty('--bh', d.h + 'px');
+  });
+  window.desktopApp.backdropReady();
+}
 
 /* ---------- Full screen: hide the side panels so only the note shows ---------- */
 function setFocus(on) {

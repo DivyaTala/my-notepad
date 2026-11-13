@@ -1,20 +1,37 @@
 # My Notepad installer (Windows).
-#   powershell -ExecutionPolicy Bypass -File install.ps1              -> Desktop shortcut only
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -Reminders   -> also install the background reminder helper
+#   powershell -ExecutionPolicy Bypass -File install.ps1              -> Desktop shortcut that opens the app through Microsoft Edge
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Desktop     -> Desktop shortcut for the real desktop app (Windows 11 Mica look; needs Node.js)
+#   add -Reminders to either one to also install the background reminder helper
 # Everything is per-user; nothing needs administrator rights. Run uninstall.ps1 to undo.
-param([switch]$Reminders)
+param([switch]$Desktop, [switch]$Reminders)
 
 $proj = $PSScriptRoot
-$edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") |
-  Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $edge) { Write-Host "Microsoft Edge was not found. Open index.html in any Chromium browser instead."; exit 1 }
-
 $ws = New-Object -ComObject WScript.Shell
-
-# Desktop shortcut: opens the app in its own window (no tabs or address bar)
 $lnk = $ws.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'My Notepad.lnk'))
-$lnk.TargetPath = $edge
-$lnk.Arguments = '--app="' + ([Uri](Join-Path $proj 'index.html')).AbsoluteUri + '"'
+
+if ($Desktop) {
+  # Desktop app: the Electron runtime is installed once into your local app data folder (about 350 MB)
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { Write-Host "Node.js is needed for the desktop app. Install it from https://nodejs.org and run this again."; exit 1 }
+  $rt = Join-Path $env:LOCALAPPDATA 'MyNotepad\runtime'
+  New-Item -ItemType Directory -Force $rt | Out-Null
+  if (-not (Test-Path "$rt\package.json")) { '{ "name": "my-notepad-runtime", "private": true }' | Set-Content "$rt\package.json" -Encoding ascii }
+  $exe = Join-Path $rt 'node_modules\electron\dist\electron.exe'
+  if (-not (Test-Path $exe)) {
+    Write-Host "Downloading the desktop runtime. This can take a few minutes..."
+    Push-Location $rt; npm install electron --no-audit --no-fund --loglevel=error; Pop-Location
+    # some npm versions skip the package's own download step, so run it directly if the program is still missing
+    if (-not (Test-Path $exe)) { Push-Location (Join-Path $rt 'node_modules\electron'); node install.js; Pop-Location }
+  }
+  if (-not (Test-Path $exe)) { Write-Host "The desktop runtime could not be installed."; exit 1 }
+  $lnk.TargetPath = $exe
+  $lnk.Arguments = '"' + (Join-Path $proj 'desktop') + '"'
+} else {
+  $edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $edge) { Write-Host "Microsoft Edge was not found. Open index.html in any Chromium browser instead."; exit 1 }
+  $lnk.TargetPath = $edge
+  $lnk.Arguments = '--app="' + ([Uri](Join-Path $proj 'index.html')).AbsoluteUri + '"'
+}
 $lnk.IconLocation = Join-Path $proj 'icon.ico'
 $lnk.WorkingDirectory = $proj
 $lnk.Save()

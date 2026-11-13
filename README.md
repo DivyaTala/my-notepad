@@ -32,6 +32,18 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 
 This puts a **My Notepad** shortcut on your Desktop that opens the app in its own window through Microsoft Edge.
 
+### Real desktop app with Windows 11 Mica
+
+For a proper desktop window with a Mica-style backdrop (your desktop wallpaper, softly blurred and tinted, behind the sidebar and backgrounds). The app draws this itself, so it shows even on PCs where Windows falls back to a flat colour. Needs [Node.js](https://nodejs.org):
+
+```
+powershell -ExecutionPolicy Bypass -File install.ps1 -Desktop
+```
+
+This downloads the Electron runtime once (about 350 MB) into your local app data folder and points the Desktop shortcut at it. The desktop app keeps its own storage in `%APPDATA%\MyNotepad`, separate from the browser's. If you already have notes in the browser version, use **Export backup** there and **Import backup** in the desktop app.
+
+### Reminders while the app is closed
+
 To also get Windows notifications for calendar reminders, even while the app is closed:
 
 ```
@@ -50,7 +62,7 @@ Do not move or rename the folder after installing; the shortcut and helper point
 
 ## Where your data lives
 
-- Notes, to-dos, events and settings are stored in the browser's local storage (IndexedDB) for the browser you open the app with. A different browser will not show them.
+- Notes, to-dos, events and settings are stored in the browser's local storage (IndexedDB) for the browser you open the app with. A different browser will not show them. The desktop app stores them in `%APPDATA%\MyNotepad`.
 - Clearing that browser's site data deletes them. Use **Export backup** regularly.
 - Journal entries are encrypted on disk and inside backup files.
 - If you forget the Journal password and have not set a backup question, the entries cannot be recovered. Anyone who knows the backup answer can open the Journal, so choose it carefully.

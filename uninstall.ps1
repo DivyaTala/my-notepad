@@ -11,5 +11,6 @@ foreach ($p in $paths) { if (Test-Path $p) { Remove-Item $p -Force } }
 $key = 'HKCU:\Software\Classes\AppUserModelId\MyNotepad.Reminders'
 if (Test-Path $key) { Remove-Item $key -Recurse -Force }
 $data = Join-Path $env:LOCALAPPDATA 'MyNotepad'
-if (Test-Path $data) { Remove-Item $data -Recurse -Force }   # the helper's copy of event titles and times
+if (Test-Path $data) { Remove-Item $data -Recurse -Force }   # the helper's copy of event titles and times, and the desktop runtime
+# Desktop-app notes are kept in %APPDATA%\MyNotepad. Delete that folder yourself only if you want the notes gone.
 Write-Host "Removed the shortcuts and the reminder helper."

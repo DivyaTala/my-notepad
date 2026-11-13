@@ -1,0 +1,8 @@
+{
+  "name": "my-notepad-desktop",
+  "productName": "My Notepad",
+  "version": "1.0.0",
+  "description": "Desktop window for My Notepad with Windows 11 Mica",
+  "main": "main.js",
+  "private": true
+}
