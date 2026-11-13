@@ -39,7 +39,8 @@ function createWindow() {
   win.loadFile(indexFile);
   win.once('ready-to-show', () => win.show());
   win.on('close', saveState);
-  for (const ev of ['move', 'resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'focus']) win.on(ev, sendBackdrop);
+  for (const ev of ['move', 'resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) win.on(ev, sendBackdrop);
+  win.on('focus', () => { wallpaper = null; sendBackdrop(); });
 
   // Links open in the normal browser, never inside the notepad window
   const external = url => { if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url); };
@@ -66,10 +67,18 @@ function wallpaperUrl() {
     return pathToFileURL(copy).href + '?v=' + Math.round(stat.mtimeMs);
   } catch { return ''; } // no picture wallpaper: the page just uses its normal colours
 }
+// The wallpaper is looked up when the window opens or is focused (it may have changed), never while dragging,
+// and position updates are sent at most once per screen frame.
+let wallpaper = null, backdropTimer = null;
 function sendBackdrop() {
-  if (!win || win.isDestroyed()) return;
-  const c = win.getContentBounds(), d = screen.getDisplayMatching(win.getBounds()).bounds;
-  win.webContents.send('backdrop', { url: wallpaperUrl(), x: c.x - d.x, y: c.y - d.y, w: d.width, h: d.height });
+  if (backdropTimer) return;
+  backdropTimer = setTimeout(() => {
+    backdropTimer = null;
+    if (!win || win.isDestroyed()) return;
+    if (wallpaper === null) wallpaper = wallpaperUrl();
+    const c = win.getContentBounds(), d = screen.getDisplayMatching(win.getBounds()).bounds;
+    win.webContents.send('backdrop', { url: wallpaper, x: c.x - d.x, y: c.y - d.y, w: d.width, h: d.height });
+  }, 16);
 }
 ipcMain.on('backdrop-ready', sendBackdrop);
 

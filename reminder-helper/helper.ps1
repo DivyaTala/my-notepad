@@ -83,6 +83,22 @@ function Do-Timer {
   if ($changed) { Save-State }
 }
 
+# How long the helper can sleep: until the next reminder is due, at most a minute.
+# While a notification is showing it checks every 15 s whether it was dismissed in Windows.
+function Next-Wait {
+  $now = Get-Date; $ms = 60000
+  foreach ($e in $state.events) {
+    $k = Key $e
+    if ($e.dismissed -or $state.dismissed[$k]) { continue }
+    if ($state.fired[$k]) { $ms = [math]::Min($ms, 15000); continue }
+    $start = Get-Start $e
+    if (-not $start -or $now -ge $start.AddHours(12)) { continue }
+    $left = ($start.AddMinutes(-[int]$e.lead) - $now).TotalMilliseconds
+    if ($left -lt $ms) { $ms = [math]::Max(250, $left + 50) }
+  }
+  return [int]$ms
+}
+
 function Do-Sync($body) {
   $j = $body | ConvertFrom-Json
   $state.events = @($j.events | Where-Object { $_ -and $_.id })
@@ -140,7 +156,7 @@ Log 'helper started'
 $task = $listener.GetContextAsync()
 while ($true) {
   try {
-    if ($task.Wait(4000)) {
+    if ($task.Wait((Next-Wait))) {
       $ctx = $task.Result; $task = $listener.GetContextAsync()
       try { Handle $ctx } catch { Log "request failed: $_"; try { $ctx.Response.Abort() } catch {} }
     }
